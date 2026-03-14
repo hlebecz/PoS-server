@@ -1,7 +1,7 @@
 **This repository includes exclusively application files**
 Here is full docker-compose configuration in case needed:
 
-////////////////////////////////////////////////////////
+```
 services:
   app:
     build:
@@ -41,3 +41,4 @@ services:
 volumes:
   pgdata:
   pgadmin-data:.
+```
