@@ -1,4 +1,4 @@
-**This repository includes exclusively application files**
+**This repository includes exclusively application files**\
 Here is full docker-compose configuration in case needed:
 
 ```
