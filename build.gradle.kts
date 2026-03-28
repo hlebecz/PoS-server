@@ -1,6 +1,5 @@
 plugins {
     java
-    application
 }
 
 group = "kurs.backend"
@@ -16,13 +15,11 @@ java {
     }
 }
 
-application {
-    mainClass = "kurs.backend.Server"
-}
-
 dependencies {
     implementation("org.hibernate.orm:hibernate-core:7.2.5.Final")
     implementation("com.mysql:mysql-connector-j:9.6.0")
+    implementation("org.postgresql:postgresql:42.7.3")
+
     compileOnly("org.projectlombok:lombok:1.18.42")
     annotationProcessor("org.projectlombok:lombok:1.18.42")
 
@@ -39,7 +36,7 @@ tasks.test {
 
 tasks.jar {
     manifest {
-        attributes["Main-Class"] = "kurs.backend.Server"
+        attributes["Main-Class"] = "kurs.backend.server.Server"
     }
     from({
         configurations.runtimeClasspath.get().map {

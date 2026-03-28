@@ -1,15 +1,38 @@
-package kurs.backend;
+package kurs.backend.server;
+
+import kurs.backend.domain.persistence.HibernateUtil;
+import kurs.backend.domain.persistence.entity.User;
+import kurs.backend.domain.persistence.entity.UserRole;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import java.util.ResourceBundle;
 
 import java.io.*;
 import java.net.*;
 
 public class Server {
-    private static final int PORT = 8080;
     // Single shared writer that flushes immediately
     private static final PrintStream console = new PrintStream(System.out, true);
+    private static final ResourceBundle config = ResourceBundle.getBundle("server");
+    private static final int PORT = Integer.parseInt(config.getString("PORT"));
 
     public static void main(String[] args) throws IOException {
         System.setOut(console);
+
+//        User user = User.builder()
+//                .login("admin")
+//                .passwordHash("hashed_password")
+//                .role(UserRole.admin)
+//                .isActive(true)
+//                .build();
+//
+//        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+//            Transaction transaction = session.beginTransaction();
+//            session.persist(user);
+//            transaction.commit();
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             console.println("Server listening on port " + PORT);
