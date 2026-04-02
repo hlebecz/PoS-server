@@ -50,7 +50,7 @@ public class ServerConfig {
   }
 
   public Integer getPort() {
-    return Integer.parseInt(bundle.getString("port"), 8080);
+    return parseInt("PORT", bundle.getString("port"), 8080);
   }
 
   private String env(String key) {

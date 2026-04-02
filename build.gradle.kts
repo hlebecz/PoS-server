@@ -61,14 +61,14 @@ spotless {
     format("gradle") {
         target("**/*.gradle", "**/*.gradle.kts")
         trimTrailingWhitespace()
-        indentWithSpaces(4)
+        leadingTabsToSpaces(4)
         endWithNewline()
     }
 
     format("misc") {
         target("**/*.md", "**/*.properties", "**/*.yml", "**/*.yaml")
         trimTrailingWhitespace()
-        indentWithSpaces(2)
+        leadingTabsToSpaces(2)
         endWithNewline()
     }
 }
