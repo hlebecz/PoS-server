@@ -1,48 +1,35 @@
 package kurs.backend.service;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import kurs.backend.domain.persistence.dao.*;
 
 /**
- * Реестр сервисов — простая замена DI-контейнеру для plain Java окружения.
- *
- * <p>Создаётся один раз при старте сервера и передаётся в обработчики запросов. Все DAO и сервисы —
- * синглтоны внутри реестра.
- *
- * <p>Пример использования:
+ * Реестр сервисов — единая точка сборки для plain Java окружения (без DI-контейнера). Создаётся
+ * один раз при старте сервера.
  *
  * <pre>
  *   ServiceRegistry services = ServiceRegistry.create();
- *   Sale sale = services.getSaleService().processSale(caller, items);
+ *   // в обработчике запроса:
+ *   SaleResponse sale = services.getSaleService().processSale(caller, req);
  * </pre>
  */
+@Getter
+@AllArgsConstructor
 public class ServiceRegistry {
 
   private final AuthService authService;
   private final UserService userService;
   private final EmployeeService employeeService;
+  private final StoreService storeService;
+  private final WarehouseService warehouseService;
   private final StockService stockService;
   private final SaleService saleService;
   private final TimesheetService timesheetService;
   private final ReportService reportService;
 
-  private ServiceRegistry(
-      AuthService authService,
-      UserService userService,
-      EmployeeService employeeService,
-      StockService stockService,
-      SaleService saleService,
-      TimesheetService timesheetService,
-      ReportService reportService) {
-    this.authService = authService;
-    this.userService = userService;
-    this.employeeService = employeeService;
-    this.stockService = stockService;
-    this.saleService = saleService;
-    this.timesheetService = timesheetService;
-    this.reportService = reportService;
-  }
-
-  /** Создаёт и связывает все DAO и сервисы. Вызывается один раз при старте приложения. */
+  /** Инициализирует все DAO и сервисы, связывая зависимости вручную. */
   public static ServiceRegistry create() {
 
     UserDao userDao = new UserDao();
@@ -55,44 +42,18 @@ public class ServiceRegistry {
     TimesheetDao timesheetDao = new TimesheetDao();
     LocationDao locationDao = new LocationDao();
 
-    StockService stockService = new StockService(stockDao, storeDao);
+    StockService stockService = new StockService(stockDao, storeDao, warehouseDao, productDao);
     UserService userService = new UserService(userDao);
 
     return new ServiceRegistry(
         new AuthService(userDao, employeeDao, timesheetDao, userService),
         userService,
-        new EmployeeService(employeeDao, storeDao),
+        new EmployeeService(employeeDao, storeDao, userDao, locationDao),
+        new StoreService(storeDao, userDao, warehouseDao, locationDao),
+        new WarehouseService(warehouseDao, locationDao),
         stockService,
-        new SaleService(saleDao, employeeDao, stockService),
+        new SaleService(saleDao, employeeDao, productDao, stockService),
         new TimesheetService(timesheetDao, employeeDao, storeDao),
         new ReportService(storeDao, saleDao, employeeDao, timesheetDao));
-  }
-
-  public AuthService getAuthService() {
-    return authService;
-  }
-
-  public UserService getUserService() {
-    return userService;
-  }
-
-  public EmployeeService getEmployeeService() {
-    return employeeService;
-  }
-
-  public StockService getStockService() {
-    return stockService;
-  }
-
-  public SaleService getSaleService() {
-    return saleService;
-  }
-
-  public TimesheetService getTimesheetService() {
-    return timesheetService;
-  }
-
-  public ReportService getReportService() {
-    return reportService;
   }
 }

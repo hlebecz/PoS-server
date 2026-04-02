@@ -4,73 +4,46 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+import lombok.AllArgsConstructor;
+
+import kurs.backend.domain.dto.request.CreateSaleRequest;
+import kurs.backend.domain.dto.response.SaleResponse;
 import kurs.backend.domain.excepton.AccessDeniedException;
 import kurs.backend.domain.excepton.ServiceException;
 import kurs.backend.domain.model.AuthenticatedUser;
 import kurs.backend.domain.persistence.dao.EmployeeDao;
+import kurs.backend.domain.persistence.dao.ProductDao;
 import kurs.backend.domain.persistence.dao.SaleDao;
 import kurs.backend.domain.persistence.entity.Employee;
+import kurs.backend.domain.persistence.entity.Product;
 import kurs.backend.domain.persistence.entity.Sale;
 import kurs.backend.domain.persistence.entity.SaleItem;
 
 /**
- * Проведение продаж и возвратов.
- *
- * <ul>
- *   <li>CASHIER — создаёт продажу от своего имени (автоматически берём Employee по userId).
- *   <li>ADMIN, MANAGER — могут просматривать продажи.
- *   <li>При продаже Stock в магазине уменьшается через StockService.deduct().
- *   <li>При возврате Stock восстанавливается через StockService.restore().
- * </ul>
+ * Проведение продаж и возвратов. CASHIER проводит продажу от своего имени (store берётся из его
+ * Employee). При нехватке Stock — ServiceException с кодом STOCK_INSUFFICIENT.
  */
+@AllArgsConstructor
 public class SaleService {
 
   private final SaleDao saleDao;
   private final EmployeeDao employeeDao;
+  private final ProductDao productDao;
   private final StockService stockService;
 
-  public SaleService(SaleDao saleDao, EmployeeDao employeeDao, StockService stockService) {
-    this.saleDao = saleDao;
-    this.employeeDao = employeeDao;
-    this.stockService = stockService;
-  }
-
-  // -----------------------------------------------------------------------
-  // Read
-  // -----------------------------------------------------------------------
-
-  public List<Sale> findByStore(AuthenticatedUser caller, UUID storeId) {
+  public List<SaleResponse> findByStore(AuthenticatedUser caller, UUID storeId) {
     requireNotGuest(caller);
-    return saleDao.findByStoreId(storeId);
+    return saleDao.findByStoreId(storeId).stream().map(SaleResponse::from).toList();
   }
 
-  public Sale findById(AuthenticatedUser caller, UUID id) {
+  public SaleResponse findById(AuthenticatedUser caller, UUID id) {
     requireNotGuest(caller);
-    return saleDao
-        .findById(id)
-        .orElseThrow(() -> new ServiceException("Продажа не найдена", "SALE_NOT_FOUND"));
+    return SaleResponse.from(getOrThrow(id));
   }
 
-  // -----------------------------------------------------------------------
-  // Create sale
-  // -----------------------------------------------------------------------
-
-  /**
-   * Проводит продажу.
-   *
-   * <p>Алгоритм:
-   *
-   * <ol>
-   *   <li>Находим Employee по userId кассира.
-   *   <li>Для каждой позиции списываем Stock из магазина кассира.
-   *   <li>Считаем итог и сохраняем Sale + SaleItems.
-   * </ol>
-   *
-   * @param items список позиций (у каждой должны быть заполнены product и quantity; unitPrice
-   *     берётся из product.price, чтобы исключить подмену цены)
-   */
-  public Sale processSale(AuthenticatedUser caller, List<SaleItem> items) {
+  public SaleResponse processSale(AuthenticatedUser caller, CreateSaleRequest req) {
     requireCashierOrAdmin(caller);
+    req.validate();
 
     Employee cashier =
         employeeDao
@@ -82,18 +55,35 @@ public class SaleService {
 
     UUID storeId = cashier.getStore().getId();
 
-    // Списываем Stock — если хоть по одному товару не хватает, бросает ServiceException
-    for (SaleItem item : items) {
-      stockService.deduct(storeId, item.getProduct().getId(), item.getQuantity());
-    }
+    // Резолвим продукты и проверяем их наличие до создания записи
+    List<SaleItem> items =
+        req.getItems().stream()
+            .map(
+                itemReq -> {
+                  Product product =
+                      productDao
+                          .findById(itemReq.getProductId())
+                          .orElseThrow(
+                              () ->
+                                  new ServiceException(
+                                      "Товар не найден: " + itemReq.getProductId(),
+                                      "PRODUCT_NOT_FOUND"));
+                  return SaleItem.builder()
+                      .product(product)
+                      .quantity(itemReq.getQuantity())
+                      .unitPrice(product.getPrice())
+                      .build();
+                })
+            .toList();
 
-    // Фиксируем цену на момент продажи
-    BigDecimal total = BigDecimal.ZERO;
-    for (SaleItem item : items) {
-      BigDecimal unitPrice = item.getProduct().getPrice();
-      item.setUnitPrice(unitPrice);
-      total = total.add(unitPrice.multiply(BigDecimal.valueOf(item.getQuantity())));
-    }
+    // Списываем Stock — если хоть по одному товару не хватает, бросает ServiceException
+    items.forEach(
+        item -> stockService.deduct(storeId, item.getProduct().getId(), item.getQuantity()));
+
+    BigDecimal total =
+        items.stream()
+            .map(i -> i.getUnitPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
     Sale sale =
         Sale.builder()
@@ -103,29 +93,21 @@ public class SaleService {
             .isReturn(false)
             .items(items)
             .build();
-
-    // Устанавливаем обратную ссылку
     items.forEach(i -> i.setSale(sale));
 
-    return saleDao.save(sale);
+    return SaleResponse.from(saleDao.save(sale));
   }
 
   /**
-   * Оформляет возврат по существующей продаже. Создаёт новую запись Sale с isReturn = true и
+   * Оформляет возврат по исходной продаже. Создаёт новую запись Sale с isReturn=true,
    * восстанавливает Stock.
    */
-  public Sale processReturn(AuthenticatedUser caller, UUID originalSaleId) {
+  public SaleResponse processReturn(AuthenticatedUser caller, UUID originalSaleId) {
     requireCashierOrAdmin(caller);
 
-    Sale original =
-        saleDao
-            .findById(originalSaleId)
-            .orElseThrow(
-                () -> new ServiceException("Исходная продажа не найдена", "SALE_NOT_FOUND"));
-
-    if (original.getIsReturn()) {
+    Sale original = getOrThrow(originalSaleId);
+    if (original.getIsReturn())
       throw new ServiceException("Нельзя оформить возврат на возврат", "SALE_ALREADY_RETURN");
-    }
 
     Employee cashier =
         employeeDao
@@ -136,13 +118,11 @@ public class SaleService {
                         "Кассир не найден среди сотрудников", "EMPLOYEE_NOT_FOUND"));
 
     UUID storeId = original.getStore().getId();
+    original
+        .getItems()
+        .forEach(
+            item -> stockService.restore(storeId, item.getProduct().getId(), item.getQuantity()));
 
-    // Восстанавливаем Stock
-    for (SaleItem item : original.getItems()) {
-      stockService.restore(storeId, item.getProduct().getId(), item.getQuantity());
-    }
-
-    // Дублируем позиции для новой записи возврата
     List<SaleItem> returnItems =
         original.getItems().stream()
             .map(
@@ -154,33 +134,23 @@ public class SaleService {
                         .build())
             .toList();
 
-    Sale returnSale =
-        Sale.builder()
-            .store(original.getStore())
-            .cashier(cashier)
-            .total(original.getTotal().negate())
-            .isReturn(true)
-            .items(returnItems)
-            .build();
+    original.setIsReturn(true);
 
-    returnItems.forEach(i -> i.setSale(returnSale));
-
-    return saleDao.save(returnSale);
+    return SaleResponse.from(saleDao.update(original));
   }
 
-  // -----------------------------------------------------------------------
-  // Guards
-  // -----------------------------------------------------------------------
+  private Sale getOrThrow(UUID id) {
+    return saleDao
+        .findById(id)
+        .orElseThrow(() -> new ServiceException("Продажа не найдена", "SALE_NOT_FOUND"));
+  }
 
   private void requireCashierOrAdmin(AuthenticatedUser caller) {
-    if (!caller.isCashier() && !caller.isAdmin()) {
+    if (!caller.isCashier() && !caller.isAdmin())
       throw new AccessDeniedException("Только CASHIER или ADMIN может проводить продажи");
-    }
   }
 
   private void requireNotGuest(AuthenticatedUser caller) {
-    if (caller.isGuest()) {
-      throw new AccessDeniedException("GUEST не имеет доступа к продажам");
-    }
+    if (caller.isGuest()) throw new AccessDeniedException("GUEST не имеет доступа к продажам");
   }
 }

@@ -1,7 +1,5 @@
 package kurs.backend.domain.model;
 
-import java.io.Serializable;
-
 import lombok.*;
 
 @Getter
@@ -11,18 +9,18 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Response implements Serializable {
+public class Response {
 
   private static final long serialVersionUID = 1L;
 
   private String requestId;
   private boolean success;
   private String message;
-  private Object data;
+  private String data;
   private String errorCode;
   private long timestamp;
 
-  public static Response ok(String requestId, Object data) {
+  public static Response ok(String requestId, String data) {
     return Response.builder()
         .requestId(requestId)
         .success(true)
@@ -31,7 +29,7 @@ public class Response implements Serializable {
         .build();
   }
 
-  public static Response ok(String requestId, String message, Object data) {
+  public static Response ok(String requestId, String message, String data) {
     return Response.builder()
         .requestId(requestId)
         .success(true)

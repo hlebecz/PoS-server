@@ -9,9 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import kurs.backend.domain.dto.responce.EmployeeStats;
-import kurs.backend.domain.dto.responce.SalesReportEntry;
-import kurs.backend.domain.dto.responce.StoreEfficiencyReport;
+import lombok.AllArgsConstructor;
+
+import kurs.backend.domain.dto.report.EmployeeStats;
+import kurs.backend.domain.dto.report.SalesReportEntry;
+import kurs.backend.domain.dto.report.StoreEfficiencyReport;
+import kurs.backend.domain.dto.request.ReportRequest;
 import kurs.backend.domain.excepton.AccessDeniedException;
 import kurs.backend.domain.excepton.ServiceException;
 import kurs.backend.domain.model.AuthenticatedUser;
@@ -24,17 +27,8 @@ import kurs.backend.domain.persistence.entity.Sale;
 import kurs.backend.domain.persistence.entity.Store;
 import kurs.backend.domain.persistence.entity.Timesheet;
 
-/**
- * Генерация аналитических отчётов.
- *
- * <p>Доступ: ACCOUNTANT и ADMIN.
- *
- * <ul>
- *   <li>{@link #salesReport} — сводка по продажам и возвратам в разрезе точек.
- *   <li>{@link #employeeEfficiency} — KPI каждого сотрудника за период.
- *   <li>{@link #storeEfficiency} — KPI по точкам со списком сотрудников.
- * </ul>
- */
+/** Генерация аналитических отчётов. Доступ: ACCOUNTANT и ADMIN. */
+@AllArgsConstructor
 public class ReportService {
 
   private final StoreDao storeDao;
@@ -42,28 +36,14 @@ public class ReportService {
   private final EmployeeDao employeeDao;
   private final TimesheetDao timesheetDao;
 
-  public ReportService(
-      StoreDao storeDao, SaleDao saleDao, EmployeeDao employeeDao, TimesheetDao timesheetDao) {
-    this.storeDao = storeDao;
-    this.saleDao = saleDao;
-    this.employeeDao = employeeDao;
-    this.timesheetDao = timesheetDao;
-  }
-
-  // -----------------------------------------------------------------------
-  // Отчёт о продажах
-  // -----------------------------------------------------------------------
-
-  /** Возвращает агрегированный отчёт о продажах по всем активным точкам за период. */
-  public List<SalesReportEntry> salesReport(
-      AuthenticatedUser caller, LocalDate from, LocalDate to) {
+  public List<SalesReportEntry> salesReport(AuthenticatedUser caller, ReportRequest req) {
     requireReportAccess(caller);
+    req.validate();
 
-    LocalDateTime dtFrom = from.atStartOfDay();
-    LocalDateTime dtTo = to.atTime(LocalTime.MAX);
+    LocalDateTime dtFrom = req.getFrom().atStartOfDay();
+    LocalDateTime dtTo = req.getTo().atTime(LocalTime.MAX);
 
     List<SalesReportEntry> result = new ArrayList<>();
-
     for (Store store : storeDao.findAllActive()) {
       List<Sale> sales = saleDao.findByStoreIdAndPeriod(store.getId(), dtFrom, dtTo);
 
@@ -79,8 +59,7 @@ public class ReportService {
       BigDecimal returnsTotal =
           sales.stream()
               .filter(Sale::getIsReturn)
-              .map(Sale::getTotal)
-              .map(BigDecimal::abs)
+              .map(s -> s.getTotal().abs())
               .reduce(BigDecimal.ZERO, BigDecimal::add);
 
       result.add(
@@ -92,67 +71,47 @@ public class ReportService {
               gross,
               gross.subtract(returnsTotal)));
     }
-
     return result;
   }
 
-  // -----------------------------------------------------------------------
-  // Эффективность сотрудников
-  // -----------------------------------------------------------------------
-
-  /**
-   * KPI по каждому сотруднику за период. Для кассиров дополнительно считается efficiencyIndex
-   * (выручка / затраты на труд).
-   */
-  public List<EmployeeStats> employeeEfficiency(
-      AuthenticatedUser caller, LocalDate from, LocalDate to) {
+  public List<EmployeeStats> employeeEfficiency(AuthenticatedUser caller, ReportRequest req) {
     requireReportAccess(caller);
-
-    List<EmployeeStats> result = new ArrayList<>();
-
-    for (Employee emp : employeeDao.findActive()) {
-      result.add(buildEmployeeStats(emp, from, to));
-    }
-
-    return result;
+    req.validate();
+    return employeeDao.findActive().stream()
+        .map(e -> buildEmployeeStats(e, req.getFrom(), req.getTo()))
+        .toList();
   }
 
-  /** KPI конкретного сотрудника. */
   public EmployeeStats employeeEfficiency(
-      AuthenticatedUser caller, UUID employeeId, LocalDate from, LocalDate to) {
+      AuthenticatedUser caller, UUID employeeId, ReportRequest req) {
     requireReportAccess(caller);
+    req.validate();
     Employee emp =
         employeeDao
             .findById(employeeId)
             .orElseThrow(() -> new ServiceException("Сотрудник не найден", "EMPLOYEE_NOT_FOUND"));
-    return buildEmployeeStats(emp, from, to);
+    return buildEmployeeStats(emp, req.getFrom(), req.getTo());
   }
 
-  // -----------------------------------------------------------------------
-  // Эффективность по точкам
-  // -----------------------------------------------------------------------
-
-  /** Сводный отчёт по каждой активной точке: выручка, затраты на труд, KPI. */
-  public List<StoreEfficiencyReport> storeEfficiency(
-      AuthenticatedUser caller, LocalDate from, LocalDate to) {
+  public List<StoreEfficiencyReport> storeEfficiency(AuthenticatedUser caller, ReportRequest req) {
     requireReportAccess(caller);
+    req.validate();
 
-    LocalDateTime dtFrom = from.atStartOfDay();
-    LocalDateTime dtTo = to.atTime(LocalTime.MAX);
+    LocalDateTime dtFrom = req.getFrom().atStartOfDay();
+    LocalDateTime dtTo = req.getTo().atTime(LocalTime.MAX);
 
     List<StoreEfficiencyReport> result = new ArrayList<>();
-
     for (Store store : storeDao.findAllActive()) {
       List<Sale> sales = saleDao.findByStoreIdAndPeriod(store.getId(), dtFrom, dtTo);
-      List<Employee> employees = employeeDao.findByStoreId(store.getId());
 
+      // total уже отрицательный для возвратов
       BigDecimal netRevenue =
-          sales.stream()
-              .map(s -> s.getIsReturn() ? s.getTotal() : s.getTotal())
-              .reduce(BigDecimal.ZERO, BigDecimal::add); // возвраты уже отрицательные
+          sales.stream().map(Sale::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
 
       List<EmployeeStats> empStats =
-          employees.stream().map(e -> buildEmployeeStats(e, from, to)).toList();
+          employeeDao.findByStoreId(store.getId()).stream()
+              .map(e -> buildEmployeeStats(e, req.getFrom(), req.getTo()))
+              .toList();
 
       BigDecimal totalLaborCost =
           empStats.stream()
@@ -180,13 +139,8 @@ public class ReportService {
               revenuePerHour,
               empStats));
     }
-
     return result;
   }
-
-  // -----------------------------------------------------------------------
-  // Helpers
-  // -----------------------------------------------------------------------
 
   private EmployeeStats buildEmployeeStats(Employee emp, LocalDate from, LocalDate to) {
     List<Timesheet> sheets = timesheetDao.findByEmployeeIdAndPeriod(emp.getId(), from, to);
@@ -213,24 +167,23 @@ public class ReportService {
     BigDecimal laborCost =
         totalHours.multiply(emp.getHourlyRate()).setScale(2, RoundingMode.HALF_UP);
 
-    // Продажи — только для кассиров
     List<Sale> cashierSales =
         saleDao.findByCashierId(emp.getId()).stream()
             .filter(s -> !s.getIsReturn())
             .filter(
-                s ->
-                    !s.getSoldAt().toLocalDate().isBefore(from)
-                        && !s.getSoldAt().toLocalDate().isAfter(to))
+                s -> {
+                  LocalDate d = s.getSoldAt().toLocalDate();
+                  return !d.isBefore(from) && !d.isAfter(to);
+                })
             .toList();
 
-    long salesCount = cashierSales.size();
     BigDecimal salesRevenue =
         cashierSales.stream().map(Sale::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
 
-    BigDecimal efficiencyIndex = null;
-    if (salesCount > 0 && laborCost.compareTo(BigDecimal.ZERO) > 0) {
-      efficiencyIndex = salesRevenue.divide(laborCost, 2, RoundingMode.HALF_UP);
-    }
+    BigDecimal efficiencyIndex =
+        (!cashierSales.isEmpty() && laborCost.compareTo(BigDecimal.ZERO) > 0)
+            ? salesRevenue.divide(laborCost, 2, RoundingMode.HALF_UP)
+            : null;
 
     return new EmployeeStats(
         emp.getId(),
@@ -243,14 +196,13 @@ public class ReportService {
         avgHours,
         emp.getHourlyRate(),
         laborCost,
-        salesCount,
+        cashierSales.size(),
         salesRevenue,
         efficiencyIndex);
   }
 
   private void requireReportAccess(AuthenticatedUser caller) {
-    if (!caller.isAccountant() && !caller.isAdmin()) {
+    if (!caller.isAccountant() && !caller.isAdmin())
       throw new AccessDeniedException("Отчёты доступны только ACCOUNTANT и ADMIN");
-    }
   }
 }
