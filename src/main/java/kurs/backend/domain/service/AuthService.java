@@ -1,4 +1,4 @@
-package kurs.backend.service;
+package kurs.backend.domain.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

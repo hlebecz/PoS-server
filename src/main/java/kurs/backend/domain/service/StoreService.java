@@ -1,4 +1,4 @@
-package kurs.backend.service;
+package kurs.backend.domain.service;
 
 import java.util.List;
 import java.util.UUID;

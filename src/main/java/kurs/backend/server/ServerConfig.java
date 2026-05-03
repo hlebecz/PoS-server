@@ -11,8 +11,6 @@ public class ServerConfig {
   private static final ResourceBundle bundle = ResourceBundle.getBundle("server");
   private static final ServerConfig INSTANCE = new ServerConfig();
 
-  private ServerConfig() {}
-
   public static ServerConfig getInstance() {
     return INSTANCE;
   }
@@ -46,7 +44,7 @@ public class ServerConfig {
   }
 
   public Integer getJWTExpiration() {
-    return Integer.parseInt(bundle.getString("jwt_expiration_hours"), 24);
+    return parseInt("JWT_EXPIRATION_HOURS", bundle.getString("jwt_expiration_hours"), 24);
   }
 
   public Integer getPort() {

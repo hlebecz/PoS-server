@@ -1,6 +1,7 @@
 package kurs.backend.domain.dto.request;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import lombok.*;
 
@@ -11,6 +12,7 @@ import lombok.*;
 public class ReportRequest extends BaseRequest {
   private LocalDate from;
   private LocalDate to;
+  private UUID employeeId;
 
   @Override
   public void validate() {

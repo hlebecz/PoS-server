@@ -21,7 +21,7 @@ public final class JwtUtil {
   private JwtUtil() {}
 
   private static final ServerConfig CFG = ServerConfig.getInstance();
-  private static final Algorithm ALGORITHM = Algorithm.HMAC256(System.getenv("JWT_SECRET"));
+  private static final Algorithm ALGORITHM = Algorithm.HMAC256(CFG.getJWTSecret());
   private static final String ISSUER = "point-of-sale-service";
 
   private static final JWTVerifier VERIFIER = JWT.require(ALGORITHM).withIssuer(ISSUER).build();

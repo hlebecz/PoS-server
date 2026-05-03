@@ -1,5 +1,6 @@
 package kurs.backend.domain.dto.response;
 
+import java.util.List;
 import java.util.UUID;
 
 import lombok.*;
@@ -16,6 +17,7 @@ public class WarehouseResponse {
   private String phone;
   private boolean isActive;
   private LocationResponse location;
+  private List<StoreResponse> stores;
 
   public static WarehouseResponse from(Warehouse w) {
     return WarehouseResponse.builder()
@@ -24,6 +26,10 @@ public class WarehouseResponse {
         .phone(w.getPhone())
         .isActive(w.getIsActive())
         .location(LocationResponse.from(w.getLocation()))
+        //        .stores(
+        //            w.getStores() != null
+        //                ? w.getStores().stream().map(StoreResponse::from).toList()
+        //                : List.of())
         .build();
   }
 }

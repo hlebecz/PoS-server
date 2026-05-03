@@ -14,6 +14,7 @@ public enum RequestType {
   UPDATE_USER,
   DELETE_USER,
   DEACTIVATE_USER,
+  ACTIVATE_USER,
 
   // Employees (ADMIN, MANAGER)
   GET_EMPLOYEES,
@@ -33,6 +34,7 @@ public enum RequestType {
   UPDATE_STORE,
   DELETE_STORE,
   DEACTIVATE_STORE,
+  ACTIVATE_STORE,
 
   // Warehouses (ADMIN, others read)
   // TODO implement stock transfer
@@ -43,6 +45,7 @@ public enum RequestType {
   UPDATE_WAREHOUSE,
   DELETE_WAREHOUSE,
   DEACTIVATE_WAREHOUSE,
+  ACTIVATE_WAREHOUSE,
 
   // Stock (all read, ADMIN/MANAGER/ACCOUNTANT write)
   GET_STOCK,
@@ -68,5 +71,10 @@ public enum RequestType {
   REPORT_SALES,
   REPORT_EMPLOYEE_EFFICIENCY,
   REPORT_EMPLOYEE_EFFICIENCY_BY_ID,
-  REPORT_STORE_EFFICIENCY
+  REPORT_STORE_EFFICIENCY,
+
+  PING,
+  HEALTH,
+  SERVER_STATUS,
+  SHUTDOWN,
 }

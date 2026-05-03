@@ -19,7 +19,6 @@ java {
 
 dependencies {
     implementation("org.hibernate.orm:hibernate-core:7.2.5.Final")
-    implementation("com.mysql:mysql-connector-j:9.6.0")
     implementation("org.postgresql:postgresql:42.7.3")
 
     // Logging

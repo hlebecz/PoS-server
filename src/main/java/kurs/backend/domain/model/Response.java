@@ -1,6 +1,11 @@
 package kurs.backend.domain.model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import lombok.*;
+
+import kurs.backend.server.handler.ClientHandler;
 
 @Getter
 @Setter
@@ -11,7 +16,7 @@ import lombok.*;
 @AllArgsConstructor
 public class Response {
 
-  private static final long serialVersionUID = 1L;
+  private static Logger log = LogManager.getLogger(ClientHandler.class);
 
   private String requestId;
   private boolean success;

@@ -1,4 +1,4 @@
-package kurs.backend.service;
+package kurs.backend.domain.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import lombok.AllArgsConstructor;
 
@@ -82,13 +81,12 @@ public class ReportService {
         .toList();
   }
 
-  public EmployeeStats employeeEfficiency(
-      AuthenticatedUser caller, UUID employeeId, ReportRequest req) {
+  public EmployeeStats employeeEfficiencyById(AuthenticatedUser caller, ReportRequest req) {
     requireReportAccess(caller);
     req.validate();
     Employee emp =
         employeeDao
-            .findById(employeeId)
+            .findById(req.getEmployeeId())
             .orElseThrow(() -> new ServiceException("Сотрудник не найден", "EMPLOYEE_NOT_FOUND"));
     return buildEmployeeStats(emp, req.getFrom(), req.getTo());
   }

@@ -1,4 +1,4 @@
-package kurs.backend.service;
+package kurs.backend.domain.service;
 
 import java.util.List;
 import java.util.UUID;
@@ -6,6 +6,7 @@ import java.util.UUID;
 import lombok.AllArgsConstructor;
 
 import kurs.backend.domain.dto.request.CreateEmployeeRequest;
+import kurs.backend.domain.dto.request.FireEmployeeRequest;
 import kurs.backend.domain.dto.request.UpdateEmployeeRequest;
 import kurs.backend.domain.dto.response.EmployeeResponse;
 import kurs.backend.domain.excepton.AccessDeniedException;
@@ -136,6 +137,15 @@ public class EmployeeService {
     Employee emp = getOrThrow(id);
     if (caller.isManager()) assertManagesStore(caller, emp.getStore().getId());
     employeeDao.delete(emp);
+  }
+
+  public Employee fire(AuthenticatedUser caller, FireEmployeeRequest req) {
+    requireAdminOrManager(caller);
+    Employee emp = getOrThrow(req.getId());
+    if (caller.isManager()) assertManagesStore(caller, emp.getStore().getId());
+    emp.setFiredAt(req.getFiredAt());
+    employeeDao.update(emp);
+    return emp;
   }
 
   private Employee getOrThrow(UUID id) {

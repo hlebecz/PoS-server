@@ -1,9 +1,10 @@
-package kurs.backend.service;
+package kurs.backend.domain.service;
 
 import java.util.List;
 import java.util.UUID;
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import kurs.backend.domain.dto.request.CreateUserRequest;
 import kurs.backend.domain.dto.request.UpdateUserRequest;
@@ -14,12 +15,13 @@ import kurs.backend.domain.model.AuthenticatedUser;
 import kurs.backend.domain.persistence.dao.UserDao;
 import kurs.backend.domain.persistence.entity.User;
 import kurs.backend.domain.persistence.entity.UserRole;
+import kurs.backend.server.auth.PasswordUtil;
 
 /** Управление учётными записями. Полный CRUD только для ADMIN. */
 @AllArgsConstructor
 public class UserService {
 
-  private final UserDao userDao;
+  @Getter private final UserDao userDao;
 
   public List<UserResponse> findAll(AuthenticatedUser caller) {
     requireAdmin(caller);
@@ -45,7 +47,7 @@ public class UserService {
     User user =
         User.builder()
             .login(req.getLogin())
-            .passwordHash(hashPassword(req.getPassword()))
+            .passwordHash(PasswordUtil.hash(req.getPassword()))
             .role(req.getRole())
             .isActive(true)
             .build();
@@ -66,7 +68,7 @@ public class UserService {
     User user =
         User.builder()
             .login(req.getLogin())
-            .passwordHash(hashPassword(req.getPassword()))
+            .passwordHash(PasswordUtil.hash(req.getPassword()))
             .role(UserRole.GUEST)
             .isActive(true)
             .build();
@@ -89,7 +91,7 @@ public class UserService {
       user.setLogin(req.getLogin());
     }
     if (req.getNewPassword() != null && !req.getNewPassword().isBlank())
-      user.setPasswordHash(hashPassword(req.getNewPassword()));
+      user.setPasswordHash(PasswordUtil.hash(req.getNewPassword()));
     if (req.getRole() != null) user.setRole(req.getRole());
     if (req.getIsActive() != null) user.setIsActive(req.getIsActive());
 
@@ -108,6 +110,13 @@ public class UserService {
     return UserResponse.from(userDao.update(user));
   }
 
+  public UserResponse activate(AuthenticatedUser caller, UUID id) {
+    requireAdmin(caller);
+    User user = getOrThrow(id);
+    user.setIsActive(true);
+    return UserResponse.from(userDao.update(user));
+  }
+
   private User getOrThrow(UUID id) {
     return userDao
         .findById(id)
@@ -116,10 +125,5 @@ public class UserService {
 
   private void requireAdmin(AuthenticatedUser caller) {
     if (!caller.isAdmin()) throw new AccessDeniedException("Требуется роль ADMIN");
-  }
-
-  /** Замени на BCrypt.hashpw() в реальном проекте. */
-  private String hashPassword(String raw) {
-    return raw;
   }
 }
