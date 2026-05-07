@@ -20,6 +20,7 @@ public class HandlerRegistry {
             new EmployeeHandler(services.getEmployeeService()),
             new StoreHandler(services.getStoreService()),
             new WarehouseHandler(services.getWarehouseService()),
+            new ProductHandler(services.getProductService()),
             new StockHandler(services.getStockService()),
             new SaleHandler(services.getSaleService()),
             new TimesheetHandler(services.getTimesheetService()),

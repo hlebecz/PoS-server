@@ -9,6 +9,9 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "stock")
 @IdClass(StockId.class)
+@NamedEntityGraph(
+    name = "Stock.full",
+    attributeNodes = {@NamedAttributeNode("storageLocation"), @NamedAttributeNode("product")})
 @Getter
 @Setter
 @NoArgsConstructor

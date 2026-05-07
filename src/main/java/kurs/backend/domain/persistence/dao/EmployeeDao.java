@@ -21,7 +21,15 @@ public class EmployeeDao extends GenericDaoImpl<Employee, UUID> {
     try {
       List<Employee> result =
           session
-              .createQuery("FROM Employee e WHERE e.store.id = :sid", Employee.class)
+              .createQuery(
+                  """
+                  FROM Employee e
+                  LEFT JOIN FETCH e.user
+                  LEFT JOIN FETCH e.store
+                  LEFT JOIN FETCH e.location
+                  WHERE e.store.id = :sid
+                  """,
+                  Employee.class)
               .setParameter("sid", storeId)
               .list();
       tx.commit();
@@ -38,7 +46,15 @@ public class EmployeeDao extends GenericDaoImpl<Employee, UUID> {
     try {
       Optional<Employee> result =
           session
-              .createQuery("FROM Employee e WHERE e.user.id = :uid", Employee.class)
+              .createQuery(
+                  """
+                  FROM Employee e
+                  LEFT JOIN FETCH e.user
+                  LEFT JOIN FETCH e.store
+                  LEFT JOIN FETCH e.location
+                  WHERE e.user.id = :uid
+                  """,
+                  Employee.class)
               .setParameter("uid", userId)
               .uniqueResultOptional();
       tx.commit();
@@ -54,7 +70,17 @@ public class EmployeeDao extends GenericDaoImpl<Employee, UUID> {
     Transaction tx = session.beginTransaction();
     try {
       List<Employee> result =
-          session.createQuery("FROM Employee e WHERE e.firedAt IS NULL", Employee.class).list();
+          session
+              .createQuery(
+                  """
+                  FROM Employee e
+                  LEFT JOIN FETCH e.user
+                  LEFT JOIN FETCH e.store
+                  LEFT JOIN FETCH e.location
+                  WHERE e.firedAt IS NULL
+                  """,
+                  Employee.class)
+              .list();
       tx.commit();
       return result;
     } catch (Exception e) {

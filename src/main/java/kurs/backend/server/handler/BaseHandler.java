@@ -39,7 +39,7 @@ public abstract class BaseHandler {
     } catch (IllegalArgumentException e) {
       return Response.fail(request.getRequestId(), e.getMessage(), "INVALID_REQUEST");
     } catch (Exception e) {
-      e.printStackTrace(); // увидишь в консоли сервера
+      e.printStackTrace();
       return Response.fail(
           request.getRequestId(),
           e.getClass().getSimpleName() + ": " + e.getMessage(),

@@ -21,7 +21,14 @@ public class StockDao extends GenericDaoImpl<Stock, StockId> {
     try {
       List<Stock> result =
           session
-              .createQuery("FROM Stock s WHERE s.storageLocation.id = :slid", Stock.class)
+              .createQuery(
+                  """
+                  FROM Stock s
+                  LEFT JOIN FETCH s.storageLocation
+                  LEFT JOIN FETCH s.product
+                  WHERE s.storageLocation.id = :slid
+                  """,
+                  Stock.class)
               .setParameter("slid", storageLocationId)
               .list();
       tx.commit();
@@ -38,7 +45,14 @@ public class StockDao extends GenericDaoImpl<Stock, StockId> {
     try {
       List<Stock> result =
           session
-              .createQuery("FROM Stock s WHERE s.product.id = :pid", Stock.class)
+              .createQuery(
+                  """
+                  FROM Stock s
+                  LEFT JOIN FETCH s.storageLocation
+                  LEFT JOIN FETCH s.product
+                  WHERE s.product.id = :pid
+                  """,
+                  Stock.class)
               .setParameter("pid", productId)
               .list();
       tx.commit();

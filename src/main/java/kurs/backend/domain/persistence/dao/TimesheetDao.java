@@ -21,7 +21,13 @@ public class TimesheetDao extends GenericDaoImpl<Timesheet, UUID> {
     try {
       List<Timesheet> result =
           session
-              .createQuery("FROM Timesheet t WHERE t.employee.id = :eid", Timesheet.class)
+              .createQuery(
+                  """
+                  FROM Timesheet t
+                  LEFT JOIN FETCH t.employee
+                  WHERE t.employee.id = :eid
+                  """,
+                  Timesheet.class)
               .setParameter("eid", employeeId)
               .list();
       tx.commit();
@@ -41,6 +47,7 @@ public class TimesheetDao extends GenericDaoImpl<Timesheet, UUID> {
               .createQuery(
                   """
                         FROM Timesheet t
+                        LEFT JOIN FETCH t.employee
                         WHERE t.employee.id = :eid
                           AND t.workDate BETWEEN :from AND :to
                         """,

@@ -54,6 +54,14 @@ public enum RequestType {
   SET_STOCK,
   DELETE_STOCK,
 
+  // Products (all read, ADMIN write)
+  GET_PRODUCTS,
+  GET_PRODUCT,
+  GET_PRODUCT_BY_ARTICLE,
+  CREATE_PRODUCT,
+  UPDATE_PRODUCT,
+  DELETE_PRODUCT,
+
   // Sales (CASHIER/ADMIN write, others read)
   GET_SALES_BY_STORE,
   GET_SALE,

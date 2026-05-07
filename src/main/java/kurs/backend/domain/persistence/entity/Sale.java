@@ -14,6 +14,13 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "sales")
+@NamedEntityGraph(
+    name = "Sale.full",
+    attributeNodes = {
+      @NamedAttributeNode("store"),
+      @NamedAttributeNode("cashier"),
+      @NamedAttributeNode("items")
+    })
 @Getter
 @Setter
 @NoArgsConstructor

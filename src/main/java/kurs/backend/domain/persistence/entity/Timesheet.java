@@ -16,6 +16,12 @@ import jakarta.persistence.*;
         @UniqueConstraint(
             name = "uq_timesheet_employee_date",
             columnNames = {"employee_id", "work_date"}))
+@NamedEntityGraph(
+    name = "Timesheet.full",
+    attributeNodes = {@NamedAttributeNode(value = "employee", subgraph = "employee-subgraph")},
+    subgraphs = {
+      @NamedSubgraph(name = "employee-subgraph", attributeNodes = @NamedAttributeNode("store"))
+    })
 @Getter
 @Setter
 @NoArgsConstructor

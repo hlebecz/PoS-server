@@ -42,8 +42,6 @@ public class SaleHandler extends BaseHandler {
     };
   }
 
-  // -----------------------------------------------------------------------
-
   private Response handleGetByStore(Request request, AuthenticatedUser caller) {
     UUID storeId = parsePayload(request, UUID.class);
     return Response.ok(request.getRequestId(), toJson(saleService.findByStore(caller, storeId)));

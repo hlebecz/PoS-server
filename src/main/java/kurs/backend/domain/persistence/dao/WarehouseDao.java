@@ -19,7 +19,15 @@ public class WarehouseDao extends GenericDaoImpl<Warehouse, UUID> {
     Transaction tx = session.beginTransaction();
     try {
       List<Warehouse> result =
-          session.createQuery("FROM Warehouse w WHERE w.isActive = true", Warehouse.class).list();
+          session
+              .createQuery(
+                  """
+                  FROM Warehouse w
+                  LEFT JOIN FETCH w.location
+                  WHERE w.isActive = true
+                  """,
+                  Warehouse.class)
+              .list();
       tx.commit();
       return result;
     } catch (Exception e) {

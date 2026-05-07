@@ -18,6 +18,7 @@ public class EmployeeResponse {
   private UUID storeId;
   private String storeName;
   private UUID userId;
+  private String userLogin;
   private String fullName;
   private String position;
   private BigDecimal hourlyRate;
@@ -34,6 +35,7 @@ public class EmployeeResponse {
         .storeId(e.getStore().getId())
         .storeName(e.getStore().getName())
         .userId(e.getUser() != null ? e.getUser().getId() : null)
+        .userLogin(e.getUser() != null ? e.getUser().getLogin() : null)
         .fullName(e.getFullName())
         .position(e.getPosition())
         .hourlyRate(e.getHourlyRate())

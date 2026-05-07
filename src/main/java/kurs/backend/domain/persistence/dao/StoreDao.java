@@ -19,7 +19,17 @@ public class StoreDao extends GenericDaoImpl<Store, UUID> {
     Transaction tx = session.beginTransaction();
     try {
       List<Store> result =
-          session.createQuery("FROM Store s WHERE s.isActive = true", Store.class).list();
+          session
+              .createQuery(
+                  """
+                  FROM Store s
+                  LEFT JOIN FETCH s.manager
+                  LEFT JOIN FETCH s.warehouse
+                  LEFT JOIN FETCH s.location
+                  WHERE s.isActive = true
+                  """,
+                  Store.class)
+              .list();
       tx.commit();
       return result;
     } catch (Exception e) {
@@ -34,7 +44,15 @@ public class StoreDao extends GenericDaoImpl<Store, UUID> {
     try {
       List<Store> result =
           session
-              .createQuery("FROM Store s WHERE s.warehouse.id = :wid", Store.class)
+              .createQuery(
+                  """
+                  FROM Store s
+                  LEFT JOIN FETCH s.manager
+                  LEFT JOIN FETCH s.warehouse
+                  LEFT JOIN FETCH s.location
+                  WHERE s.warehouse.id = :wid
+                  """,
+                  Store.class)
               .setParameter("wid", warehouseId)
               .list();
       tx.commit();
@@ -51,7 +69,15 @@ public class StoreDao extends GenericDaoImpl<Store, UUID> {
     try {
       List<Store> result =
           session
-              .createQuery("FROM Store s WHERE s.manager.id = :mid", Store.class)
+              .createQuery(
+                  """
+                  FROM Store s
+                  LEFT JOIN FETCH s.manager
+                  LEFT JOIN FETCH s.warehouse
+                  LEFT JOIN FETCH s.location
+                  WHERE s.manager.id = :mid
+                  """,
+                  Store.class)
               .setParameter("mid", managerId)
               .list();
       tx.commit();

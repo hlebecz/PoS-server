@@ -24,6 +24,7 @@ public class ServiceRegistry {
   private final EmployeeService employeeService;
   private final StoreService storeService;
   private final WarehouseService warehouseService;
+  private final ProductService productService;
   private final StockService stockService;
   private final SaleService saleService;
   private final TimesheetService timesheetService;
@@ -43,7 +44,8 @@ public class ServiceRegistry {
     LocationDao locationDao = new LocationDao();
 
     StockService stockService = new StockService(stockDao, storeDao, warehouseDao, productDao);
-    UserService userService = new UserService(userDao);
+    UserService userService = new UserService(userDao, employeeDao);
+    ProductService productService = new ProductService(productDao);
 
     return new ServiceRegistry(
         new AuthService(userDao, employeeDao, timesheetDao, userService),
@@ -51,6 +53,7 @@ public class ServiceRegistry {
         new EmployeeService(employeeDao, storeDao, userDao, locationDao),
         new StoreService(storeDao, userDao, warehouseDao, locationDao),
         new WarehouseService(warehouseDao, locationDao),
+        productService,
         stockService,
         new SaleService(saleDao, employeeDao, productDao, stockService),
         new TimesheetService(timesheetDao, employeeDao, storeDao),

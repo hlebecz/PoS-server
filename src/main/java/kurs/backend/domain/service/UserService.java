@@ -12,6 +12,7 @@ import kurs.backend.domain.dto.response.UserResponse;
 import kurs.backend.domain.excepton.AccessDeniedException;
 import kurs.backend.domain.excepton.ServiceException;
 import kurs.backend.domain.model.AuthenticatedUser;
+import kurs.backend.domain.persistence.dao.EmployeeDao;
 import kurs.backend.domain.persistence.dao.UserDao;
 import kurs.backend.domain.persistence.entity.User;
 import kurs.backend.domain.persistence.entity.UserRole;
@@ -22,15 +23,16 @@ import kurs.backend.server.auth.PasswordUtil;
 public class UserService {
 
   @Getter private final UserDao userDao;
+  private final EmployeeDao employeeDao;
 
   public List<UserResponse> findAll(AuthenticatedUser caller) {
     requireAdmin(caller);
-    return userDao.findAll().stream().map(UserResponse::from).toList();
+    return userDao.findAll().stream().map(this::toResponseWithEmployee).toList();
   }
 
   public UserResponse findById(AuthenticatedUser caller, UUID id) {
     requireAdmin(caller);
-    return UserResponse.from(getOrThrow(id));
+    return toResponseWithEmployee(getOrThrow(id));
   }
 
   public UserResponse create(AuthenticatedUser caller, CreateUserRequest req) {
@@ -52,7 +54,7 @@ public class UserService {
             .isActive(true)
             .build();
 
-    return UserResponse.from(userDao.save(user));
+    return toResponseWithEmployee(userDao.save(user));
   }
 
   public void createGuest(CreateUserRequest req) {
@@ -95,7 +97,7 @@ public class UserService {
     if (req.getRole() != null) user.setRole(req.getRole());
     if (req.getIsActive() != null) user.setIsActive(req.getIsActive());
 
-    return UserResponse.from(userDao.update(user));
+    return toResponseWithEmployee(userDao.update(user));
   }
 
   public void delete(AuthenticatedUser caller, UUID id) {
@@ -107,14 +109,34 @@ public class UserService {
     requireAdmin(caller);
     User user = getOrThrow(id);
     user.setIsActive(false);
-    return UserResponse.from(userDao.update(user));
+    return toResponseWithEmployee(userDao.update(user));
   }
 
   public UserResponse activate(AuthenticatedUser caller, UUID id) {
     requireAdmin(caller);
     User user = getOrThrow(id);
     user.setIsActive(true);
-    return UserResponse.from(userDao.update(user));
+    return toResponseWithEmployee(userDao.update(user));
+  }
+
+  private UserResponse toResponseWithEmployee(User user) {
+    UserResponse.UserResponseBuilder builder =
+        UserResponse.builder()
+            .id(user.getId())
+            .login(user.getLogin())
+            .role(user.getRole())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt());
+
+    employeeDao
+        .findByUserId(user.getId())
+        .ifPresent(
+            emp -> {
+              builder.employeeId(emp.getId());
+              builder.employeeName(emp.getFullName());
+            });
+
+    return builder.build();
   }
 
   private User getOrThrow(UUID id) {

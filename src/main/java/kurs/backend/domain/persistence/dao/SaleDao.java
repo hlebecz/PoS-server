@@ -21,7 +21,16 @@ public class SaleDao extends GenericDaoImpl<Sale, UUID> {
     try {
       List<Sale> result =
           session
-              .createQuery("FROM Sale s WHERE s.store.id = :sid", Sale.class)
+              .createQuery(
+                  """
+                  FROM Sale s
+                  LEFT JOIN FETCH s.store
+                  LEFT JOIN FETCH s.cashier
+                  LEFT JOIN FETCH s.items i
+                  LEFT JOIN FETCH i.product
+                  WHERE s.store.id = :sid
+                  """,
+                  Sale.class)
               .setParameter("sid", storeId)
               .list();
       tx.commit();
@@ -38,7 +47,16 @@ public class SaleDao extends GenericDaoImpl<Sale, UUID> {
     try {
       List<Sale> result =
           session
-              .createQuery("FROM Sale s WHERE s.cashier.id = :cid", Sale.class)
+              .createQuery(
+                  """
+                  FROM Sale s
+                  LEFT JOIN FETCH s.store
+                  LEFT JOIN FETCH s.cashier
+                  LEFT JOIN FETCH s.items i
+                  LEFT JOIN FETCH i.product
+                  WHERE s.cashier.id = :cid
+                  """,
+                  Sale.class)
               .setParameter("cid", cashierId)
               .list();
       tx.commit();
@@ -58,6 +76,10 @@ public class SaleDao extends GenericDaoImpl<Sale, UUID> {
               .createQuery(
                   """
                         FROM Sale s
+                        LEFT JOIN FETCH s.store
+                        LEFT JOIN FETCH s.cashier
+                        LEFT JOIN FETCH s.items i
+                        LEFT JOIN FETCH i.product
                         WHERE s.store.id = :sid
                           AND s.soldAt BETWEEN :from AND :to
                         """,

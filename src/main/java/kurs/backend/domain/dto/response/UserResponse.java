@@ -17,6 +17,8 @@ public class UserResponse {
   private String login;
   private UserRole role;
   private boolean isActive;
+  private UUID employeeId;
+  private String employeeName;
   private LocalDateTime createdAt;
 
   public static UserResponse from(User u) {
@@ -25,6 +27,8 @@ public class UserResponse {
         .login(u.getLogin())
         .role(u.getRole())
         .isActive(u.getIsActive())
+        .employeeId(null)
+        .employeeName(null)
         .createdAt(u.getCreatedAt())
         .build();
   }

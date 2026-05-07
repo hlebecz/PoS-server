@@ -9,6 +9,9 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "warehouses")
 @PrimaryKeyJoinColumn(name = "id")
+@NamedEntityGraph(
+    name = "Warehouse.full",
+    attributeNodes = {@NamedAttributeNode("location")})
 @Getter
 @Setter
 @NoArgsConstructor
