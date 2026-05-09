@@ -81,7 +81,11 @@ public class AuthService {
 
   public void register(LoginRequest req) {
     CreateUserRequest createUserRequest =
-        CreateUserRequest.builder().login(req.getLogin()).password(req.getPassword()).build();
+        CreateUserRequest.builder()
+            .login(req.getLogin())
+            .password(req.getPassword())
+            .role(UserRole.GUEST)
+            .build();
     try {
       userService.createGuest(createUserRequest);
     } catch (ServiceException e) {

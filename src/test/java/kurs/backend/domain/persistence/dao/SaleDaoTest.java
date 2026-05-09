@@ -168,37 +168,36 @@ class SaleDaoTest {
         cashier1Sales.stream().allMatch(s -> s.getCashier().getId().equals(cashier1.getId())));
   }
 
-    @Test
-    void findByStoreIdAndPeriod_shouldReturnSalesInPeriod() {
-      Store store = TestDataBuilder.store();
-      storeDao.save(store);
+  @Test
+  void findByStoreIdAndPeriod_shouldReturnSalesInPeriod() {
+    Store store = TestDataBuilder.store();
+    storeDao.save(store);
 
-      Employee cashier = TestDataBuilder.employeeWithStore(store).build();
-      employeeDao.save(cashier);
+    Employee cashier = TestDataBuilder.employeeWithStore(store).build();
+    employeeDao.save(cashier);
 
-      LocalDateTime baseTime = LocalDateTime.of(2026, 5, 7, 12, 0, 0);
-      LocalDateTime yesterday = baseTime.minusDays(1);
-      LocalDateTime lastWeek = baseTime.minusDays(7);
-      LocalDateTime lastMonth = baseTime.minusDays(30);
+    LocalDateTime baseTime = LocalDateTime.of(2026, 5, 7, 12, 0, 0);
+    LocalDateTime yesterday = baseTime.minusDays(1);
+    LocalDateTime lastWeek = baseTime.minusDays(7);
+    LocalDateTime lastMonth = baseTime.minusDays(30);
 
-      Sale sale1 = TestDataBuilder.saleComplete(store, cashier).soldAt(baseTime).build();
-      Sale sale2 = TestDataBuilder.saleComplete(store, cashier).soldAt(yesterday).build();
-      Sale sale3 = TestDataBuilder.saleComplete(store, cashier).soldAt(lastWeek).build();
-      Sale sale4 = TestDataBuilder.saleComplete(store, cashier).soldAt(lastMonth).build();
+    Sale sale1 = TestDataBuilder.saleComplete(store, cashier).soldAt(baseTime).build();
+    Sale sale2 = TestDataBuilder.saleComplete(store, cashier).soldAt(yesterday).build();
+    Sale sale3 = TestDataBuilder.saleComplete(store, cashier).soldAt(lastWeek).build();
+    Sale sale4 = TestDataBuilder.saleComplete(store, cashier).soldAt(lastMonth).build();
 
-      saleDao.save(sale1);
-      saleDao.save(sale2);
-      saleDao.save(sale3);
-      saleDao.save(sale4);
+    saleDao.save(sale1);
+    saleDao.save(sale2);
+    saleDao.save(sale3);
+    saleDao.save(sale4);
 
-      // Query with very wide time range
-      List<Sale> allSalesInRange =
-          saleDao.findByStoreIdAndPeriod(store.getId(), lastMonth.minusDays(1),
-   baseTime.plusDays(1));
+    // Query with very wide time range
+    List<Sale> allSalesInRange =
+        saleDao.findByStoreIdAndPeriod(store.getId(), lastMonth.minusDays(1), baseTime.plusDays(1));
 
-      // Should get all 4 sales
-      assertEquals(4, allSalesInRange.size());
-    }
+    // Should get all 4 sales
+    assertEquals(4, allSalesInRange.size());
+  }
 
   @Test
   void findByStoreIdAndPeriod_shouldReturnEmptyListWhenNoSalesInPeriod() {

@@ -3,6 +3,7 @@ package kurs.backend.server.handler;
 import java.util.Set;
 
 import kurs.backend.domain.dto.request.LoginRequest;
+import kurs.backend.domain.excepton.ServiceException;
 import kurs.backend.domain.model.Request;
 import kurs.backend.domain.model.RequestType;
 import kurs.backend.domain.model.Response;
@@ -10,7 +11,8 @@ import kurs.backend.domain.service.AuthService;
 
 public class AuthHandler extends BaseHandler {
 
-  private static final Set<RequestType> SUPPORTED = Set.of(RequestType.LOGIN, RequestType.LOGOUT);
+  private static final Set<RequestType> SUPPORTED =
+      Set.of(RequestType.LOGIN, RequestType.LOGOUT, RequestType.REGISTER);
 
   private final AuthService authService;
 
@@ -28,8 +30,19 @@ public class AuthHandler extends BaseHandler {
     return switch (request.getType()) {
       case LOGIN -> handleLogin(request);
       case LOGOUT -> handleLogout(request);
+      case REGISTER -> handleRegister(request);
       default -> Response.fail(request.getRequestId(), "Неподдерживаемый тип", "UNSUPPORTED");
     };
+  }
+
+  private Response handleRegister(Request request) {
+    LoginRequest req = parsePayload(request, LoginRequest.class);
+    try {
+      authService.register(req);
+      return Response.ok(request.getRequestId(), "Регистрация успешна", null);
+    } catch (ServiceException e) {
+      return Response.fail(request.getRequestId(), e.getMessage(), null);
+    }
   }
 
   private Response handleLogin(Request request) {

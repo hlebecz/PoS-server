@@ -74,6 +74,7 @@ public class UserService {
             .role(UserRole.GUEST)
             .isActive(true)
             .build();
+    userDao.save(user);
   }
 
   public UserResponse update(AuthenticatedUser caller, UpdateUserRequest req) {
