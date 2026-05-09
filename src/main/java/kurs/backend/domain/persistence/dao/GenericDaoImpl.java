@@ -5,21 +5,22 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.graph.GraphSemantic;
-
-import kurs.backend.domain.persistence.HibernateUtil;
 
 public abstract class GenericDaoImpl<T, ID> implements GenericDao<T, ID> {
 
   private final Class<T> entityClass;
+  private final SessionFactory sessionFactory;
 
-  protected GenericDaoImpl(Class<T> entityClass) {
+  protected GenericDaoImpl(Class<T> entityClass, SessionFactory sessionFactory) {
     this.entityClass = entityClass;
+    this.sessionFactory = sessionFactory;
   }
 
   protected Session getSession() {
-    return HibernateUtil.getSessionFactory().getCurrentSession();
+    return sessionFactory.getCurrentSession();
   }
 
   /**

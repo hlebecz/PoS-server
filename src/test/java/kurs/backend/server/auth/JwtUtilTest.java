@@ -14,24 +14,6 @@ import kurs.backend.domain.persistence.entity.UserRole;
 
 class JwtUtilTest {
 
-  static {
-    // Set required environment variables before ServerConfig is initialized
-    setEnvVariable("JWT_SECRET", "test-secret-key-for-unit-tests-only");
-  }
-
-  private static void setEnvVariable(String key, String value) {
-    try {
-      java.util.Map<String, String> env = System.getenv();
-      java.lang.reflect.Field field = env.getClass().getDeclaredField("m");
-      field.setAccessible(true);
-      @SuppressWarnings("unchecked")
-      java.util.Map<String, String> map = (java.util.Map<String, String>) field.get(env);
-      map.put(key, value);
-    } catch (Exception e) {
-      System.err.println("Warning: Could not set JWT_SECRET environment variable");
-    }
-  }
-
   @Test
   void generateToken_shouldReturnNonNullToken() {
     User user =

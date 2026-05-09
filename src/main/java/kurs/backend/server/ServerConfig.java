@@ -40,7 +40,11 @@ public class ServerConfig {
   }
 
   public String getJWTSecret() {
-    return env("JWT_SECRET");
+    String secret = env("JWT_SECRET");
+    if (secret == null) {
+      throw new IllegalStateException("JWT_Secret environment variable is not set");
+    }
+    return secret;
   }
 
   public Integer getJWTExpiration() {

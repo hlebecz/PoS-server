@@ -17,6 +17,7 @@ public class StoreHandler extends BaseHandler {
       Set.of(
           RequestType.GET_STORES,
           RequestType.GET_STORES_ACTIVE,
+          RequestType.GET_STORES_ACTIVE_BASIC,
           RequestType.GET_STORE,
           RequestType.GET_STORES_BY_WAREHOUSE,
           RequestType.CREATE_STORE,
@@ -42,6 +43,7 @@ public class StoreHandler extends BaseHandler {
     return switch (request.getType()) {
       case GET_STORES -> handleGetAll(request, caller);
       case GET_STORES_ACTIVE -> handleGetAllActive(request, caller);
+      case GET_STORES_ACTIVE_BASIC -> handleGetAllActiveBasic(request, caller);
       case GET_STORE -> handleGetById(request, caller);
       case GET_STORES_BY_WAREHOUSE -> handleGetByWarehouse(request, caller);
       case CREATE_STORE -> handleCreate(request, caller);
@@ -59,6 +61,10 @@ public class StoreHandler extends BaseHandler {
 
   private Response handleGetAllActive(Request request, AuthenticatedUser caller) {
     return Response.ok(request.getRequestId(), toJson(storeService.findAllActive(caller)));
+  }
+
+  private Response handleGetAllActiveBasic(Request request, AuthenticatedUser caller) {
+    return Response.ok(request.getRequestId(), toJson(storeService.findAllActiveBasic(caller)));
   }
 
   private Response handleGetById(Request request, AuthenticatedUser caller) {

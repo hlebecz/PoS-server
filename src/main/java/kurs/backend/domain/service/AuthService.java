@@ -66,9 +66,10 @@ public class AuthService {
                         "Сотрудник для пользователя не найден", "EMPLOYEE_NOT_FOUND"));
 
     LocalDate today = LocalDate.now();
+    // Find the most recent open timesheet for today
     timesheetDao.findByEmployeeIdAndPeriod(emp.getId(), today, today).stream()
         .filter(t -> t.getCheckOut() == null)
-        .findFirst()
+        .max((t1, t2) -> t1.getCheckIn().compareTo(t2.getCheckIn()))
         .ifPresent(
             t -> {
               LocalTime now = LocalTime.now();
@@ -93,10 +94,15 @@ public class AuthService {
     if (empOpt.isEmpty()) return;
     Employee emp = empOpt.get();
     LocalDate today = LocalDate.now();
-    boolean alreadyOpen =
+
+    // Check if there's already an open timesheet for today
+    Optional<Timesheet> openTimesheet =
         timesheetDao.findByEmployeeIdAndPeriod(emp.getId(), today, today).stream()
-            .anyMatch(t -> t.getCheckOut() == null);
-    if (!alreadyOpen) {
+            .filter(t -> t.getCheckOut() == null)
+            .findFirst();
+
+    // Reuse existing open timesheet, or create a new one if none exists
+    if (openTimesheet.isEmpty()) {
       timesheetDao.save(
           Timesheet.builder().employee(emp).workDate(today).checkIn(LocalTime.now()).build());
     }

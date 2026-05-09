@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 
 import kurs.backend.domain.dto.request.CreateStoreRequest;
 import kurs.backend.domain.dto.request.UpdateStoreRequest;
+import kurs.backend.domain.dto.response.StoreBasicResponse;
 import kurs.backend.domain.dto.response.StoreResponse;
 import kurs.backend.domain.excepton.AccessDeniedException;
 import kurs.backend.domain.excepton.ServiceException;
@@ -54,6 +55,16 @@ public class StoreService {
         .filter(Store::getIsActive)
         .map(StoreResponse::from)
         .toList();
+  }
+
+  /**
+   * Возвращает базовую информацию об активных магазинах (только id и name). Доступно всем
+   * аутентифицированным пользователям для использования в фильтрах и пикерах.
+   */
+  public List<StoreBasicResponse> findAllActiveBasic(AuthenticatedUser caller) {
+    // Нет проверки прав - все аутентифицированные пользователи могут видеть список активных
+    // магазинов
+    return storeDao.findAllActive().stream().map(StoreBasicResponse::from).toList();
   }
 
   public StoreResponse findById(AuthenticatedUser caller, UUID id) {

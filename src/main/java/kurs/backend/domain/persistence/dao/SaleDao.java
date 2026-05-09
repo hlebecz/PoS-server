@@ -5,14 +5,15 @@ import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 
 import kurs.backend.domain.persistence.entity.Sale;
 
 public class SaleDao extends GenericDaoImpl<Sale, UUID> {
 
-  public SaleDao() {
-    super(Sale.class);
+  public SaleDao(SessionFactory sessionFactory) {
+    super(Sale.class, sessionFactory);
   }
 
   public List<Sale> findByStoreId(UUID storeId) {

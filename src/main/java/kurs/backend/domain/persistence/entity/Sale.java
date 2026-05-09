@@ -48,11 +48,17 @@ public class Sale {
   @Builder.Default
   private Boolean isReturn = false;
 
-  @CreationTimestamp
   @Column(name = "sold_at", updatable = false)
   private LocalDateTime soldAt;
 
   @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
   private List<SaleItem> items = new ArrayList<>();
+
+  @PrePersist
+  protected void onCreate() {
+    if (soldAt == null) {
+      soldAt = LocalDateTime.now();
+    }
+  }
 }

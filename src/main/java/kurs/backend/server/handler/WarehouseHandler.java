@@ -17,6 +17,7 @@ public class WarehouseHandler extends BaseHandler {
       Set.of(
           RequestType.GET_WAREHOUSES,
           RequestType.GET_WAREHOUSES_ACTIVE,
+          RequestType.GET_WAREHOUSES_ACTIVE_BASIC,
           RequestType.GET_WAREHOUSE,
           RequestType.CREATE_WAREHOUSE,
           RequestType.UPDATE_WAREHOUSE,
@@ -39,6 +40,7 @@ public class WarehouseHandler extends BaseHandler {
     return switch (request.getType()) {
       case GET_WAREHOUSES -> handleGetAll(request, caller);
       case GET_WAREHOUSES_ACTIVE -> handleGetAllActive(request, caller);
+      case GET_WAREHOUSES_ACTIVE_BASIC -> handleGetAllActiveBasic(request, caller);
       case GET_WAREHOUSE -> handleGetById(request, caller);
       case CREATE_WAREHOUSE -> handleCreate(request, caller);
       case UPDATE_WAREHOUSE -> handleUpdate(request, caller);
@@ -55,6 +57,10 @@ public class WarehouseHandler extends BaseHandler {
 
   private Response handleGetAllActive(Request request, AuthenticatedUser caller) {
     return Response.ok(request.getRequestId(), toJson(warehouseService.findAllActive(caller)));
+  }
+
+  private Response handleGetAllActiveBasic(Request request, AuthenticatedUser caller) {
+    return Response.ok(request.getRequestId(), toJson(warehouseService.findAllActiveBasic(caller)));
   }
 
   private Response handleGetById(Request request, AuthenticatedUser caller) {

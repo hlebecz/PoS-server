@@ -5,14 +5,15 @@ import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 
 import kurs.backend.domain.persistence.entity.Timesheet;
 
 public class TimesheetDao extends GenericDaoImpl<Timesheet, UUID> {
 
-  public TimesheetDao() {
-    super(Timesheet.class);
+  public TimesheetDao(SessionFactory sessionFactory) {
+    super(Timesheet.class, sessionFactory);
   }
 
   public List<Timesheet> findByEmployeeId(UUID employeeId) {

@@ -4,8 +4,6 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import lombok.*;
 
@@ -32,8 +30,7 @@ public class User {
   private String passwordHash;
 
   @Enumerated(EnumType.STRING)
-  @Column(nullable = false, columnDefinition = "user_role")
-  @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+  @Column(nullable = false)
   private UserRole role;
 
   @Column(name = "is_active", nullable = false)

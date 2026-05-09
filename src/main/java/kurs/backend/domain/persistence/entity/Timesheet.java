@@ -10,12 +10,7 @@ import lombok.*;
 import jakarta.persistence.*;
 
 @Entity
-@Table(
-    name = "timesheets",
-    uniqueConstraints =
-        @UniqueConstraint(
-            name = "uq_timesheet_employee_date",
-            columnNames = {"employee_id", "work_date"}))
+@Table(name = "timesheets")
 @NamedEntityGraph(
     name = "Timesheet.full",
     attributeNodes = {@NamedAttributeNode(value = "employee", subgraph = "employee-subgraph")},

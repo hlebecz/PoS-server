@@ -4,8 +4,6 @@ import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 
-import lombok.Getter;
-
 import kurs.backend.domain.persistence.entity.*;
 
 /**
@@ -17,7 +15,19 @@ import kurs.backend.domain.persistence.entity.*;
  */
 public class HibernateUtil {
 
-  @Getter private static final SessionFactory sessionFactory = buildSessionFactory();
+  private static SessionFactory sessionFactory;
+
+  public static SessionFactory getSessionFactory() {
+    // Lazy initialization of production session factory
+    if (sessionFactory == null) {
+      synchronized (HibernateUtil.class) {
+        if (sessionFactory == null) {
+          sessionFactory = buildSessionFactory();
+        }
+      }
+    }
+    return sessionFactory;
+  }
 
   private static SessionFactory buildSessionFactory() {
     try {

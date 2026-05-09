@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 
 import kurs.backend.domain.dto.request.CreateWarehouseRequest;
 import kurs.backend.domain.dto.request.UpdateWarehouseRequest;
+import kurs.backend.domain.dto.response.WarehouseBasicResponse;
 import kurs.backend.domain.dto.response.WarehouseResponse;
 import kurs.backend.domain.excepton.AccessDeniedException;
 import kurs.backend.domain.excepton.ServiceException;
@@ -39,6 +40,15 @@ public class WarehouseService {
   public List<WarehouseResponse> findAllActive(AuthenticatedUser caller) {
     requireReadAccess(caller);
     return warehouseDao.findAllActive().stream().map(WarehouseResponse::from).toList();
+  }
+
+  /**
+   * Возвращает базовую информацию об активных складах (только id и name). Доступно всем
+   * аутентифицированным пользователям для использования в фильтрах и пикерах.
+   */
+  public List<WarehouseBasicResponse> findAllActiveBasic(AuthenticatedUser caller) {
+    // Нет проверки прав - все аутентифицированные пользователи могут видеть список активных складов
+    return warehouseDao.findAllActive().stream().map(WarehouseBasicResponse::from).toList();
   }
 
   public WarehouseResponse findById(AuthenticatedUser caller, UUID id) {

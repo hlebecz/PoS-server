@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 
 import kurs.backend.domain.persistence.entity.User;
@@ -12,8 +13,8 @@ import kurs.backend.domain.persistence.entity.UserRole;
 
 public class UserDao extends GenericDaoImpl<User, UUID> {
 
-  public UserDao() {
-    super(User.class);
+  public UserDao(SessionFactory sessionFactory) {
+    super(User.class, sessionFactory);
   }
 
   public Optional<User> findByLogin(String login) {

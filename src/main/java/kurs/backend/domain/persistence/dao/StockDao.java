@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 
 import kurs.backend.domain.persistence.entity.Stock;
@@ -11,8 +12,8 @@ import kurs.backend.domain.persistence.entity.StockId;
 
 public class StockDao extends GenericDaoImpl<Stock, StockId> {
 
-  public StockDao() {
-    super(Stock.class);
+  public StockDao(SessionFactory sessionFactory) {
+    super(Stock.class, sessionFactory);
   }
 
   public List<Stock> findByStorageLocationId(UUID storageLocationId) {

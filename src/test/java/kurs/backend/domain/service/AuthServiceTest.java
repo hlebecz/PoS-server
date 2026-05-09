@@ -52,7 +52,12 @@ class AuthServiceTest {
     LoginRequest request = LoginRequest.builder().login("testuser").password("password123").build();
 
     String hashedPassword = PasswordUtil.hash("password123");
-    User user = TestDataBuilder.user().login("testuser").passwordHash(hashedPassword).build();
+    User user =
+        TestDataBuilder.user()
+            .login("testuser")
+            .passwordHash(hashedPassword)
+            .id(UUID.randomUUID())
+            .build();
 
     when(userDao.findByLogin("testuser")).thenReturn(Optional.of(user));
 
@@ -120,7 +125,12 @@ class AuthServiceTest {
     LoginRequest request = LoginRequest.builder().login("cashier").password("password123").build();
 
     String hashedPassword = PasswordUtil.hash("password123");
-    User user = TestDataBuilder.cashierUser().login("cashier").passwordHash(hashedPassword).build();
+    User user =
+        TestDataBuilder.cashierUser()
+            .login("cashier")
+            .passwordHash(hashedPassword)
+            .id(UUID.randomUUID())
+            .build();
     Employee employee = TestDataBuilder.employee().user(user).build();
 
     when(userDao.findByLogin("cashier")).thenReturn(Optional.of(user));
@@ -140,7 +150,12 @@ class AuthServiceTest {
     LoginRequest request = LoginRequest.builder().login("cashier").password("password123").build();
 
     String hashedPassword = PasswordUtil.hash("password123");
-    User user = TestDataBuilder.cashierUser().login("cashier").passwordHash(hashedPassword).build();
+    User user =
+        TestDataBuilder.cashierUser()
+            .login("cashier")
+            .passwordHash(hashedPassword)
+            .id(UUID.randomUUID())
+            .build();
     Employee employee = TestDataBuilder.employee().user(user).build();
     Timesheet openTimesheet = TestDataBuilder.timesheet().employee(employee).checkOut(null).build();
 
@@ -166,6 +181,7 @@ class AuthServiceTest {
             .login("guest")
             .passwordHash(hashedPassword)
             .role(UserRole.GUEST)
+            .id(UUID.randomUUID())
             .build();
 
     when(userDao.findByLogin("guest")).thenReturn(Optional.of(user));

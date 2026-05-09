@@ -79,6 +79,11 @@ spotless {
 tasks.test {
     useJUnitPlatform()
     finalizedBy(tasks.jacocoTestReport)
+    environment("JWT_SECRET", "test-secret-key-for-unit-tests-only")
+    environment("POSTGRES_PASSWORD", "test-password")
+    environment("DB_HOST", "localhost")
+    environment("POSTGRES_USER", "test-user")
+    environment("POSTGRES_DB", "test-db")
 }
 
 tasks.jacocoTestReport {

@@ -1,8 +1,11 @@
 package kurs.backend.domain.service;
 
+import org.hibernate.SessionFactory;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import kurs.backend.domain.persistence.HibernateUtil;
 import kurs.backend.domain.persistence.dao.*;
 
 /**
@@ -33,15 +36,17 @@ public class ServiceRegistry {
   /** Инициализирует все DAO и сервисы, связывая зависимости вручную. */
   public static ServiceRegistry create() {
 
-    UserDao userDao = new UserDao();
-    EmployeeDao employeeDao = new EmployeeDao();
-    StoreDao storeDao = new StoreDao();
-    WarehouseDao warehouseDao = new WarehouseDao();
-    ProductDao productDao = new ProductDao();
-    StockDao stockDao = new StockDao();
-    SaleDao saleDao = new SaleDao();
-    TimesheetDao timesheetDao = new TimesheetDao();
-    LocationDao locationDao = new LocationDao();
+    SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
+
+    UserDao userDao = new UserDao(sessionFactory);
+    EmployeeDao employeeDao = new EmployeeDao(sessionFactory);
+    StoreDao storeDao = new StoreDao(sessionFactory);
+    WarehouseDao warehouseDao = new WarehouseDao(sessionFactory);
+    ProductDao productDao = new ProductDao(sessionFactory);
+    StockDao stockDao = new StockDao(sessionFactory);
+    SaleDao saleDao = new SaleDao(sessionFactory);
+    TimesheetDao timesheetDao = new TimesheetDao(sessionFactory);
+    LocationDao locationDao = new LocationDao(sessionFactory);
 
     StockService stockService = new StockService(stockDao, storeDao, warehouseDao, productDao);
     UserService userService = new UserService(userDao, employeeDao);

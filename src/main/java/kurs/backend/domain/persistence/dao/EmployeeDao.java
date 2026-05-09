@@ -5,14 +5,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 
 import kurs.backend.domain.persistence.entity.Employee;
 
 public class EmployeeDao extends GenericDaoImpl<Employee, UUID> {
 
-  public EmployeeDao() {
-    super(Employee.class);
+  public EmployeeDao(SessionFactory sessionFactory) {
+    super(Employee.class, sessionFactory);
   }
 
   public List<Employee> findByStoreId(UUID storeId) {

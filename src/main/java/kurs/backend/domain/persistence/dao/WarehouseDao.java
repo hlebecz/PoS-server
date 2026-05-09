@@ -4,14 +4,15 @@ import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 
 import kurs.backend.domain.persistence.entity.Warehouse;
 
 public class WarehouseDao extends GenericDaoImpl<Warehouse, UUID> {
 
-  public WarehouseDao() {
-    super(Warehouse.class);
+  public WarehouseDao(SessionFactory sessionFactory) {
+    super(Warehouse.class, sessionFactory);
   }
 
   public List<Warehouse> findAllActive() {
