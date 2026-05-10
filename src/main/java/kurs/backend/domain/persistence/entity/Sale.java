@@ -17,7 +17,12 @@ import jakarta.persistence.*;
     attributeNodes = {
       @NamedAttributeNode("store"),
       @NamedAttributeNode("cashier"),
-      @NamedAttributeNode("items")
+      @NamedAttributeNode(value = "items", subgraph = "items-subgraph")
+    },
+    subgraphs = {
+      @NamedSubgraph(
+          name = "items-subgraph",
+          attributeNodes = {@NamedAttributeNode("product")})
     })
 @Getter
 @Setter
