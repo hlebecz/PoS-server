@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import lombok.AllArgsConstructor;
 
 import kurs.backend.domain.dto.request.CreateSaleRequest;
@@ -26,6 +29,9 @@ import kurs.backend.domain.persistence.entity.SaleItem;
 @AllArgsConstructor
 public class SaleService {
 
+  private static final Logger log = LogManager.getLogger(SaleService.class);
+  private static final Logger auditLog = LogManager.getLogger("kurs.backend.audit");
+
   private final SaleDao saleDao;
   private final EmployeeDao employeeDao;
   private final ProductDao productDao;
@@ -33,11 +39,16 @@ public class SaleService {
 
   public List<SaleResponse> findByStore(AuthenticatedUser caller, UUID storeId) {
     requireNotGuest(caller);
-    return saleDao.findByStoreId(storeId).stream().map(SaleResponse::from).toList();
+    log.debug("Finding sales by store: storeId={}, userId={}", storeId, caller.getUserId());
+    List<SaleResponse> sales =
+        saleDao.findByStoreId(storeId).stream().map(SaleResponse::from).toList();
+    log.info("Found {} sales for storeId={}", sales.size(), storeId);
+    return sales;
   }
 
   public SaleResponse findById(AuthenticatedUser caller, UUID id) {
     requireNotGuest(caller);
+    log.debug("Finding sale by id: saleId={}, userId={}", id, caller.getUserId());
     return SaleResponse.from(getOrThrow(id));
   }
 
@@ -45,15 +56,20 @@ public class SaleService {
     requireCashierOrAdmin(caller);
     req.validate();
 
+    log.info("Processing sale: userId={}, itemCount={}", caller.getUserId(), req.getItems().size());
+
     Employee cashier =
         employeeDao
             .findByUserId(caller.getUserId())
             .orElseThrow(
-                () ->
-                    new ServiceException(
-                        "Кассир не найден среди сотрудников", "EMPLOYEE_NOT_FOUND"));
+                () -> {
+                  log.error("Cashier not found for userId={}", caller.getUserId());
+                  return new ServiceException(
+                      "Кассир не найден среди сотрудников", "EMPLOYEE_NOT_FOUND");
+                });
 
     UUID storeId = cashier.getStore().getId();
+    log.debug("Sale processing: cashierId={}, storeId={}", cashier.getId(), storeId);
 
     // Резолвим продукты и проверяем их наличие до создания записи
     List<SaleItem> items =
@@ -64,10 +80,12 @@ public class SaleService {
                       productDao
                           .findById(itemReq.getProductId())
                           .orElseThrow(
-                              () ->
-                                  new ServiceException(
-                                      "Товар не найден: " + itemReq.getProductId(),
-                                      "PRODUCT_NOT_FOUND"));
+                              () -> {
+                                log.warn("Product not found: productId={}", itemReq.getProductId());
+                                return new ServiceException(
+                                    "Товар не найден: " + itemReq.getProductId(),
+                                    "PRODUCT_NOT_FOUND");
+                              });
                   return SaleItem.builder()
                       .product(product)
                       .quantity(itemReq.getQuantity())
@@ -95,7 +113,23 @@ public class SaleService {
             .build();
     items.forEach(i -> i.setSale(sale));
 
-    return SaleResponse.from(saleDao.save(sale));
+    Sale savedSale = saleDao.save(sale);
+    log.info(
+        "Sale processed successfully: saleId={}, total={}, cashierId={}, storeId={}",
+        savedSale.getId(),
+        total,
+        cashier.getId(),
+        storeId);
+    auditLog.info(
+        "Sale created: saleId={}, total={}, itemCount={}, cashierId={}, storeId={}, userId={}",
+        savedSale.getId(),
+        total,
+        items.size(),
+        cashier.getId(),
+        storeId,
+        caller.getUserId());
+
+    return SaleResponse.from(savedSale);
   }
 
   /**
@@ -105,23 +139,41 @@ public class SaleService {
   public SaleResponse processReturn(AuthenticatedUser caller, UUID originalSaleId) {
     requireCashierOrAdmin(caller);
 
+    log.info("Processing return: originalSaleId={}, userId={}", originalSaleId, caller.getUserId());
+
     Sale original = getOrThrow(originalSaleId);
-    if (original.getIsReturn())
+    if (original.getIsReturn()) {
+      log.warn("Return rejected: sale is already a return - saleId={}", originalSaleId);
       throw new ServiceException("Нельзя оформить возврат на возврат", "SALE_ALREADY_RETURN");
+    }
 
     Employee cashier =
         employeeDao
             .findByUserId(caller.getUserId())
             .orElseThrow(
-                () ->
-                    new ServiceException(
-                        "Кассир не найден среди сотрудников", "EMPLOYEE_NOT_FOUND"));
+                () -> {
+                  log.error("Cashier not found for userId={}", caller.getUserId());
+                  return new ServiceException(
+                      "Кассир не найден среди сотрудников", "EMPLOYEE_NOT_FOUND");
+                });
 
     UUID storeId = original.getStore().getId();
+    log.debug(
+        "Return processing: originalSaleId={}, storeId={}, cashierId={}",
+        originalSaleId,
+        storeId,
+        cashier.getId());
+
     original
         .getItems()
         .forEach(
-            item -> stockService.restore(storeId, item.getProduct().getId(), item.getQuantity()));
+            item -> {
+              stockService.restore(storeId, item.getProduct().getId(), item.getQuantity());
+              log.debug(
+                  "Stock restored: productId={}, quantity={}",
+                  item.getProduct().getId(),
+                  item.getQuantity());
+            });
 
     List<SaleItem> returnItems =
         original.getItems().stream()
@@ -136,7 +188,24 @@ public class SaleService {
 
     original.setIsReturn(true);
 
-    return SaleResponse.from(saleDao.update(original));
+    Sale returnedSale = saleDao.update(original);
+    log.info(
+        "Return processed successfully: saleId={}, total={}, itemCount={}, cashierId={}, storeId={}",
+        returnedSale.getId(),
+        returnedSale.getTotal(),
+        returnedSale.getItems().size(),
+        cashier.getId(),
+        storeId);
+    auditLog.info(
+        "Sale returned: saleId={}, total={}, itemCount={}, cashierId={}, storeId={}, userId={}",
+        returnedSale.getId(),
+        returnedSale.getTotal(),
+        returnedSale.getItems().size(),
+        cashier.getId(),
+        storeId,
+        caller.getUserId());
+
+    return SaleResponse.from(returnedSale);
   }
 
   private Sale getOrThrow(UUID id) {

@@ -47,25 +47,25 @@ public class Server {
     serverSocket = new ServerSocket(config.getPort());
     running = true;
 
-    System.out.printf("[Server] Запущен на порту %d%n", config.getPort());
+    log.info("Server started on port {}", config.getPort());
 
     while (running) {
       try {
         Socket clientSocket = serverSocket.accept();
         clientSocket.setSoTimeout(30000);
-        log.info(clientSocket);
+        log.debug("Client connected: {}", clientSocket.getInetAddress().getHostAddress());
 
         spawnClientThread(clientSocket);
 
       } catch (SocketException e) {
         if (!running) break;
-        System.err.println("[Server] Ошибка сокета: " + e.getMessage());
+        log.error("Socket error: {}", e.getMessage());
       } catch (IOException e) {
-        if (running) System.err.println("[Server] Ошибка accept: " + e.getMessage());
+        if (running) log.error("Accept error: {}", e.getMessage());
       }
     }
 
-    System.out.println("[Server] Принятие соединений остановлено.");
+    log.info("Server stopped accepting connections");
   }
 
   private void spawnClientThread(Socket clientSocket) {
@@ -89,13 +89,13 @@ public class Server {
   }
 
   public void shutdown() {
-    System.out.println("[Server] Завершение работы...");
+    log.info("Server shutdown initiated");
     running = false;
 
     try {
       if (serverSocket != null && !serverSocket.isClosed()) serverSocket.close();
     } catch (IOException e) {
-      System.err.println("[Server] Ошибка при закрытии ServerSocket: " + e.getMessage());
+      log.error("Error closing ServerSocket: {}", e.getMessage());
     }
 
     long deadline = System.currentTimeMillis() + 30000;
@@ -111,12 +111,15 @@ public class Server {
     }
 
     if (!clientThreads.isEmpty())
-      System.err.printf("[Server] %d клиент(ов) не завершили работу.%n", clientThreads.size());
+      log.warn("{} client thread(s) did not finish gracefully", clientThreads.size());
 
-    System.out.println("[Server] Завершён.");
+    log.info("Server shutdown complete");
   }
 
   private void spawnAdmin(UserDao dao) {
+    if (!dao.findByRole(UserRole.ADMIN).isEmpty()) {
+      return;
+    }
     User admin =
         User.builder()
             .login("admin")
@@ -126,6 +129,7 @@ public class Server {
     try {
       dao.save(admin);
     } catch (Exception e) {
+      log.error("Error saving admin: {}", e.getMessage());
     }
   }
 

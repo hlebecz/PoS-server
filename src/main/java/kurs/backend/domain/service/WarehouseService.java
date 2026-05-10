@@ -3,6 +3,9 @@ package kurs.backend.domain.service;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import lombok.AllArgsConstructor;
 
 import kurs.backend.domain.dto.request.CreateWarehouseRequest;
@@ -29,17 +32,28 @@ import kurs.backend.domain.persistence.entity.Warehouse;
 @AllArgsConstructor
 public class WarehouseService {
 
+  private static final Logger log = LogManager.getLogger(WarehouseService.class);
+  private static final Logger auditLog = LogManager.getLogger("kurs.backend.audit");
+
   private final WarehouseDao warehouseDao;
   private final LocationDao locationDao;
 
   public List<WarehouseResponse> findAll(AuthenticatedUser caller) {
     requireReadAccess(caller);
-    return warehouseDao.findAll().stream().map(WarehouseResponse::from).toList();
+    log.info("Finding all warehouses: userId={}", caller.getUserId());
+    List<WarehouseResponse> result =
+        warehouseDao.findAll().stream().map(WarehouseResponse::from).toList();
+    log.debug("Found {} warehouses", result.size());
+    return result;
   }
 
   public List<WarehouseResponse> findAllActive(AuthenticatedUser caller) {
     requireReadAccess(caller);
-    return warehouseDao.findAllActive().stream().map(WarehouseResponse::from).toList();
+    log.info("Finding all active warehouses: userId={}", caller.getUserId());
+    List<WarehouseResponse> result =
+        warehouseDao.findAllActive().stream().map(WarehouseResponse::from).toList();
+    log.debug("Found {} active warehouses", result.size());
+    return result;
   }
 
   /**
@@ -48,11 +62,16 @@ public class WarehouseService {
    */
   public List<WarehouseBasicResponse> findAllActiveBasic(AuthenticatedUser caller) {
     // Нет проверки прав - все аутентифицированные пользователи могут видеть список активных складов
-    return warehouseDao.findAllActive().stream().map(WarehouseBasicResponse::from).toList();
+    log.debug("Finding all active warehouses (basic): userId={}", caller.getUserId());
+    List<WarehouseBasicResponse> result =
+        warehouseDao.findAllActive().stream().map(WarehouseBasicResponse::from).toList();
+    log.debug("Found {} active warehouses (basic)", result.size());
+    return result;
   }
 
   public WarehouseResponse findById(AuthenticatedUser caller, UUID id) {
     requireReadAccess(caller);
+    log.debug("Finding warehouse by id: warehouseId={}, userId={}", id, caller.getUserId());
     return WarehouseResponse.from(getOrThrow(id));
   }
 
@@ -60,11 +79,21 @@ public class WarehouseService {
     requireAdmin(caller);
     req.validate();
 
+    log.info(
+        "Creating warehouse: name={}, locationId={}, userId={}",
+        req.getName(),
+        req.getLocationId(),
+        caller.getUserId());
+
     Location location =
         req.getLocationId() != null
             ? locationDao
                 .findById(req.getLocationId())
-                .orElseThrow(() -> new ServiceException("Локация не найдена", "LOCATION_NOT_FOUND"))
+                .orElseThrow(
+                    () -> {
+                      log.warn("Location not found: locationId={}", req.getLocationId());
+                      return new ServiceException("Локация не найдена", "LOCATION_NOT_FOUND");
+                    })
             : null;
 
     Warehouse wh = new Warehouse();
@@ -73,46 +102,91 @@ public class WarehouseService {
     wh.setIsActive(true);
     wh.setLocation(location);
 
-    return WarehouseResponse.from(warehouseDao.save(wh));
+    Warehouse saved = warehouseDao.save(wh);
+    log.info(
+        "Warehouse created successfully: warehouseId={}, name={}", saved.getId(), saved.getName());
+    auditLog.info(
+        "Warehouse created: warehouseId={}, name={}, locationId={}, userId={}",
+        saved.getId(),
+        saved.getName(),
+        req.getLocationId(),
+        caller.getUserId());
+
+    return WarehouseResponse.from(saved);
   }
 
   public WarehouseResponse update(AuthenticatedUser caller, UpdateWarehouseRequest req) {
     requireAdmin(caller);
     req.validate();
 
+    log.info("Updating warehouse: warehouseId={}, userId={}", req.getId(), caller.getUserId());
+
     Warehouse wh = getOrThrow(req.getId());
 
-    if (req.getName() != null && !req.getName().isBlank()) wh.setName(req.getName());
+    if (req.getName() != null && !req.getName().isBlank()) {
+      log.debug("Updating warehouse name: warehouseId={}, newName={}", req.getId(), req.getName());
+      wh.setName(req.getName());
+    }
     if (req.getPhone() != null) wh.setPhone(req.getPhone());
     if (req.getLocationId() != null) {
       Location loc =
           locationDao
               .findById(req.getLocationId())
-              .orElseThrow(() -> new ServiceException("Локация не найдена", "LOCATION_NOT_FOUND"));
+              .orElseThrow(
+                  () -> {
+                    log.warn("Location not found: locationId={}", req.getLocationId());
+                    return new ServiceException("Локация не найдена", "LOCATION_NOT_FOUND");
+                  });
       wh.setLocation(loc);
     }
     if (req.getIsActive() != null) wh.setIsActive(req.getIsActive());
 
-    return WarehouseResponse.from(warehouseDao.update(wh));
+    Warehouse updated = warehouseDao.update(wh);
+    log.info("Warehouse updated successfully: warehouseId={}", updated.getId());
+    return WarehouseResponse.from(updated);
   }
 
   public void delete(AuthenticatedUser caller, UUID id) {
     requireAdmin(caller);
-    warehouseDao.delete(getOrThrow(id));
+    log.info("Deleting warehouse: warehouseId={}, userId={}", id, caller.getUserId());
+    Warehouse wh = getOrThrow(id);
+    warehouseDao.delete(wh);
+    log.info("Warehouse deleted successfully: warehouseId={}", id);
+    auditLog.info(
+        "Warehouse deleted: warehouseId={}, name={}, userId={}",
+        id,
+        wh.getName(),
+        caller.getUserId());
   }
 
   public WarehouseResponse deactivate(AuthenticatedUser caller, UUID id) {
     requireAdmin(caller);
+    log.info("Deactivating warehouse: warehouseId={}, userId={}", id, caller.getUserId());
     Warehouse wh = getOrThrow(id);
     wh.setIsActive(false);
-    return WarehouseResponse.from(warehouseDao.update(wh));
+    Warehouse updated = warehouseDao.update(wh);
+    log.info("Warehouse deactivated successfully: warehouseId={}", id);
+    auditLog.info(
+        "Warehouse deactivated: warehouseId={}, name={}, userId={}",
+        id,
+        wh.getName(),
+        caller.getUserId());
+    return WarehouseResponse.from(updated);
   }
 
   public WarehouseResponse activate(AuthenticatedUser caller, UUID id) {
     requireAdmin(caller);
+    log.info("Activating warehouse: warehouseId={}, userId={}", id, caller.getUserId());
     Warehouse wh = getOrThrow(id);
     wh.setIsActive(true);
-    return WarehouseResponse.from(warehouseDao.update(wh));
+    Warehouse updated = warehouseDao.update(wh);
+    log.info("Warehouse activated successfully: warehouseId={}", id);
+    auditLog.info(
+        "Warehouse activated: warehouseId={}, name={}, userId={}",
+        id,
+        wh.getName(),
+        caller.getUserId());
+    return WarehouseResponse.from(updated);
   }
 
   private Warehouse getOrThrow(UUID id) {

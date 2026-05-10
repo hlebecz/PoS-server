@@ -8,6 +8,7 @@ import java.net.Socket;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -34,6 +35,9 @@ public class ClientHandler implements Runnable {
   @Override
   public void run() {
     String clientIp = socket.getInetAddress().getHostAddress();
+    ThreadContext.put("clientIp", clientIp);
+
+    log.info("Client connected from: {}", clientIp);
     serverInfo.onConnect();
 
     try (BufferedReader in =
@@ -48,10 +52,13 @@ public class ClientHandler implements Runnable {
       }
 
     } catch (IOException e) {
+      log.error("IO error for client {}: {}", clientIp, e.getMessage());
       serverInfo.onError();
     } finally {
+      log.info("Client disconnected: {}", clientIp);
       serverInfo.onDisconnect();
       closeQuietly(socket);
+      ThreadContext.clearAll();
     }
   }
 
@@ -60,11 +67,13 @@ public class ClientHandler implements Runnable {
     try {
       request = GSON.fromJson(line, Request.class);
     } catch (JsonSyntaxException e) {
+      log.warn("Invalid JSON received from {}: {}", clientIp, e.getMessage());
       serverInfo.onError();
       return GSON.toJson(Response.fail(null, "Некорректный JSON", "PARSE_ERROR"));
     }
 
     if (request == null || request.getType() == null) {
+      log.warn("Invalid request from {}: missing request type", clientIp);
       serverInfo.onError();
       return GSON.toJson(
           Response.fail(
@@ -73,14 +82,36 @@ public class ClientHandler implements Runnable {
               "INVALID_REQUEST"));
     }
 
+    // Add request context to MDC
+    ThreadContext.put("requestId", request.getRequestId());
+
+    log.info("Request received: type={}, requestId={}", request.getType(), request.getRequestId());
+
     try {
       Response response = dispatcher.dispatch(request, clientIp);
-      if (!response.isSuccess()) serverInfo.onError();
+      if (!response.isSuccess()) {
+        log.warn(
+            "Request failed: type={}, requestId={}, errorCode={}",
+            request.getType(),
+            request.getRequestId(),
+            response.getErrorCode());
+        serverInfo.onError();
+      } else {
+        log.info(
+            "Request successful: type={}, requestId={}", request.getType(), request.getRequestId());
+      }
       return GSON.toJson(response);
     } catch (Exception e) {
+      log.error(
+          "Unexpected error processing request: type={}, requestId={}",
+          request.getType(),
+          request.getRequestId(),
+          e);
       serverInfo.onError();
       return GSON.toJson(
           Response.fail(request.getRequestId(), "Внутренняя ошибка сервера", "INTERNAL_ERROR"));
+    } finally {
+      ThreadContext.remove("requestId");
     }
   }
 

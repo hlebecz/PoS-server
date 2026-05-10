@@ -1,5 +1,7 @@
 package kurs.backend.domain.persistence;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
@@ -15,6 +17,7 @@ import kurs.backend.domain.persistence.entity.*;
  */
 public class HibernateUtil {
 
+  private static final Logger log = LogManager.getLogger(HibernateUtil.class);
   private static SessionFactory sessionFactory;
 
   public static SessionFactory getSessionFactory() {
@@ -31,6 +34,7 @@ public class HibernateUtil {
 
   private static SessionFactory buildSessionFactory() {
     try {
+      log.info("Building Hibernate SessionFactory...");
       /**
        * The configuration object will hold all of our Hibernate specific properties. So it's going
        * to know how we want Hibernate to perform. Another purpose of our configuration is to hold
@@ -57,13 +61,16 @@ public class HibernateUtil {
        * builder pattern invoke the build method and pass the ServiceRegistry into the
        * BuildSessionFactoryMethod and eventually we'll end up with a SessionFactory.
        */
-      return configuration.buildSessionFactory(
-          new StandardServiceRegistryBuilder()
-              .applySettings(configuration.getProperties())
-              .build());
+      SessionFactory factory =
+          configuration.buildSessionFactory(
+              new StandardServiceRegistryBuilder()
+                  .applySettings(configuration.getProperties())
+                  .build());
+      log.info("Hibernate SessionFactory built successfully");
+      return factory;
     } catch (Exception e) {
-      e.printStackTrace();
-      throw new RuntimeException("There was an error building the factory");
+      log.error("Error building Hibernate SessionFactory", e);
+      throw new RuntimeException("There was an error building the factory", e);
     }
   }
 }

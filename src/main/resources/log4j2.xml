@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+  <Properties>
+    <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+    <Property name="LOG_PATTERN_WITH_MDC">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} [%X{requestId}] [%X{userId}] [%X{clientIp}] - %msg%n</Property>
+  </Properties>
+
+  <Appenders>
+    <!-- Console Appender for general application logs -->
+    <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+    </Console>
+
+    <!-- Console Appender for errors -->
+    <Console name="ConsoleError" target="SYSTEM_ERR">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+    </Console>
+
+    <!-- File Appender for all logs -->
+    <RollingFile name="FileAll" fileName="logs/application.log"
+                 filePattern="logs/application-%d{yyyy-MM-dd}-%i.log.gz">
+      <PatternLayout pattern="${LOG_PATTERN_WITH_MDC}"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="100MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="30"/>
+    </RollingFile>
+
+    <!-- File Appender for error logs -->
+    <RollingFile name="FileError" fileName="logs/error.log"
+                 filePattern="logs/error-%d{yyyy-MM-dd}-%i.log.gz">
+      <PatternLayout pattern="${LOG_PATTERN_WITH_MDC}"/>
+      <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="50MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="30"/>
+    </RollingFile>
+
+    <!-- File Appender for request/response logs -->
+    <RollingFile name="FileRequest" fileName="logs/request.log"
+                 filePattern="logs/request-%d{yyyy-MM-dd}-%i.log.gz">
+      <PatternLayout pattern="${LOG_PATTERN_WITH_MDC}"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="100MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="30"/>
+    </RollingFile>
+
+    <!-- File Appender for audit logs (sensitive operations) -->
+    <RollingFile name="FileAudit" fileName="logs/audit.log"
+                 filePattern="logs/audit-%d{yyyy-MM-dd}-%i.log.gz">
+      <PatternLayout pattern="${LOG_PATTERN_WITH_MDC}"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="50MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="90"/>
+    </RollingFile>
+
+    <!-- File Appender for database/transaction logs -->
+    <RollingFile name="FileDatabase" fileName="logs/database.log"
+                 filePattern="logs/database-%d{yyyy-MM-dd}-%i.log.gz">
+      <PatternLayout pattern="${LOG_PATTERN_WITH_MDC}"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="100MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="30"/>
+    </RollingFile>
+  </Appenders>
+
+  <Loggers>
+    <!-- Request/Response Logger -->
+    <Logger name="kurs.backend.server.handler.ClientHandler" level="INFO" additivity="false">
+      <AppenderRef ref="FileRequest"/>
+      <AppenderRef ref="Console"/>
+    </Logger>
+
+    <!-- Handler Layer Logger -->
+    <Logger name="kurs.backend.server.handler" level="INFO" additivity="false">
+      <AppenderRef ref="FileAll"/>
+      <AppenderRef ref="FileError"/>
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="ConsoleError"/>
+    </Logger>
+
+    <!-- Service Layer Logger -->
+    <Logger name="kurs.backend.domain.service" level="INFO" additivity="false">
+      <AppenderRef ref="FileAll"/>
+      <AppenderRef ref="FileError"/>
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="ConsoleError"/>
+    </Logger>
+
+    <!-- DAO/Database Layer Logger -->
+    <Logger name="kurs.backend.domain.persistence.dao" level="INFO" additivity="false">
+      <AppenderRef ref="FileDatabase"/>
+      <AppenderRef ref="FileError"/>
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="ConsoleError"/>
+    </Logger>
+
+    <!-- Audit Logger for sensitive operations -->
+    <Logger name="kurs.backend.audit" level="INFO" additivity="false">
+      <AppenderRef ref="FileAudit"/>
+      <AppenderRef ref="Console"/>
+    </Logger>
+
+    <!-- Hibernate SQL Logging (optional, can be disabled in production) -->
+    <Logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+      <AppenderRef ref="FileDatabase"/>
+    </Logger>
+
+    <Logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE" additivity="false">
+      <AppenderRef ref="FileDatabase"/>
+    </Logger>
+
+    <!-- Root Logger -->
+    <Root level="INFO">
+      <AppenderRef ref="FileAll"/>
+      <AppenderRef ref="FileError"/>
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="ConsoleError"/>
+    </Root>
+  </Loggers>
+</Configuration>

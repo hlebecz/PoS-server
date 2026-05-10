@@ -8,6 +8,9 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import lombok.AllArgsConstructor;
 
 import kurs.backend.domain.dto.report.EmployeeStats;
@@ -30,6 +33,8 @@ import kurs.backend.domain.persistence.entity.Timesheet;
 @AllArgsConstructor
 public class ReportService {
 
+  private static final Logger log = LogManager.getLogger(ReportService.class);
+
   private final StoreDao storeDao;
   private final SaleDao saleDao;
   private final EmployeeDao employeeDao;
@@ -38,6 +43,13 @@ public class ReportService {
   public List<SalesReportEntry> salesReport(AuthenticatedUser caller, ReportRequest req) {
     requireReportAccess(caller);
     req.validate();
+
+    log.info(
+        "Generating sales report: from={}, to={}, userId={}",
+        req.getFrom(),
+        req.getTo(),
+        caller.getUserId());
+    long startTime = System.currentTimeMillis();
 
     LocalDateTime dtFrom = req.getFrom().atStartOfDay();
     LocalDateTime dtTo = req.getTo().atTime(LocalTime.MAX);
@@ -70,30 +82,67 @@ public class ReportService {
               gross,
               gross.subtract(returnsTotal)));
     }
+
+    long executionTime = System.currentTimeMillis() - startTime;
+    log.info(
+        "Sales report generated: storeCount={}, executionTime={}ms", result.size(), executionTime);
     return result;
   }
 
   public List<EmployeeStats> employeeEfficiency(AuthenticatedUser caller, ReportRequest req) {
     requireReportAccess(caller);
     req.validate();
-    return employeeDao.findActive().stream()
-        .map(e -> buildEmployeeStats(e, req.getFrom(), req.getTo()))
-        .toList();
+
+    log.info(
+        "Generating employee efficiency report: from={}, to={}, userId={}",
+        req.getFrom(),
+        req.getTo(),
+        caller.getUserId());
+
+    List<EmployeeStats> result =
+        employeeDao.findActive().stream()
+            .map(e -> buildEmployeeStats(e, req.getFrom(), req.getTo()))
+            .toList();
+
+    log.info("Employee efficiency report generated: employeeCount={}", result.size());
+    return result;
   }
 
   public EmployeeStats employeeEfficiencyById(AuthenticatedUser caller, ReportRequest req) {
     requireReportAccess(caller);
     req.validate();
+
+    log.info(
+        "Generating employee efficiency report by id: employeeId={}, from={}, to={}, userId={}",
+        req.getEmployeeId(),
+        req.getFrom(),
+        req.getTo(),
+        caller.getUserId());
+
     Employee emp =
         employeeDao
             .findById(req.getEmployeeId())
-            .orElseThrow(() -> new ServiceException("Сотрудник не найден", "EMPLOYEE_NOT_FOUND"));
-    return buildEmployeeStats(emp, req.getFrom(), req.getTo());
+            .orElseThrow(
+                () -> {
+                  log.warn("Employee not found: employeeId={}", req.getEmployeeId());
+                  return new ServiceException("Сотрудник не найден", "EMPLOYEE_NOT_FOUND");
+                });
+
+    EmployeeStats result = buildEmployeeStats(emp, req.getFrom(), req.getTo());
+    log.info("Employee efficiency report generated for employeeId={}", req.getEmployeeId());
+    return result;
   }
 
   public List<StoreEfficiencyReport> storeEfficiency(AuthenticatedUser caller, ReportRequest req) {
     requireReportAccess(caller);
     req.validate();
+
+    log.info(
+        "Generating store efficiency report: from={}, to={}, userId={}",
+        req.getFrom(),
+        req.getTo(),
+        caller.getUserId());
+    long startTime = System.currentTimeMillis();
 
     LocalDateTime dtFrom = req.getFrom().atStartOfDay();
     LocalDateTime dtTo = req.getTo().atTime(LocalTime.MAX);
@@ -137,6 +186,12 @@ public class ReportService {
               revenuePerHour,
               empStats));
     }
+
+    long executionTime = System.currentTimeMillis() - startTime;
+    log.info(
+        "Store efficiency report generated: storeCount={}, executionTime={}ms",
+        result.size(),
+        executionTime);
     return result;
   }
 

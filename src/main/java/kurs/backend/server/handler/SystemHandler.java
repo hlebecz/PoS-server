@@ -19,7 +19,6 @@ public class SystemHandler extends BaseHandler {
 
   private final ServerInfo serverInfo;
 
-  /** Callback на shutdown — передаётся из Server, чтобы не хранить ссылку на сервер. */
   private final Runnable shutdownCallback;
 
   public SystemHandler(ServerInfo serverInfo, Runnable shutdownCallback) {
@@ -48,7 +47,7 @@ public class SystemHandler extends BaseHandler {
   }
 
   private Response handleHealth(Request request) {
-    authenticate(request); // токен нужен, роль — нет
+    authenticate(request);
 
     Map<String, Object> health = new LinkedHashMap<>();
     health.put("status", "UP");
